@@ -75,6 +75,15 @@ def test_predict_position_category_returns_a_probability_distribution(tmp_conn):
     assert all(0.0 <= p <= 1.0 for p in probabilities.values())
 
 
+def test_predict_next_show_date_returns_a_date_after_the_last_known_show(tmp_conn):
+    _seed_history(tmp_conn)
+
+    predicted = PredictionAgent().predict_next_show_date(tmp_conn, as_of_date=date(2020, 7, 1))
+
+    assert isinstance(predicted, date)
+    assert predicted > date(2020, 6, 1)  # after the fixture's last show (2020-06-01)
+
+
 def test_predict_encore_probability_reflects_historical_ratio(tmp_conn):
     _seed_history(tmp_conn)
     encore_song_id = db.get_song_id_by_name(tmp_conn, "Encore Song")

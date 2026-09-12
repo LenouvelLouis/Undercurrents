@@ -43,6 +43,9 @@ def main(argv=None) -> None:
             top_category = max(probabilities, key=probabilities.get)
             print(f"  {prediction.song_name}: {top_category} ({probabilities[top_category]:.3f})")
 
+        predicted_date = PredictionAgent().predict_next_show_date(conn, as_of_date=reference_date)
+        print(f"Predicted next show date: {predicted_date.isoformat()}")
+
     elif args.command == "evaluate":
         results = evaluate.backtest(conn, holdout_shows=args.holdout_shows)
         mean_accuracy = sum(r["top_n_accuracy"] for r in results) / len(results)
@@ -59,6 +62,13 @@ def main(argv=None) -> None:
         print(
             f"Position category accuracy: {summary['overall_accuracy']:.1%} overall "
             f"(recall by category: {recall_str})"
+        )
+
+        date_results = evaluate.backtest_next_show_date(conn, holdout_shows=args.holdout_shows)
+        date_summary = evaluate.summarize_next_show_date_backtest(date_results)
+        print(
+            f"Next show date MAE: {date_summary['mae_days']:.1f} days "
+            f"(median: {date_summary['median_absolute_error_days']:.1f} days)"
         )
 
     conn.close()

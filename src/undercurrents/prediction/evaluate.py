@@ -1,6 +1,7 @@
-from datetime import date
+import statistics
+from datetime import date, timedelta
 
-from undercurrents.prediction import features, model, position, setlist_length
+from undercurrents.prediction import features, model, next_show_date, position, setlist_length
 
 
 def backtest(conn, holdout_shows: int = 10) -> list[dict]:
@@ -159,3 +160,52 @@ def summarize_position_backtest(results: list[dict]) -> dict:
     }
 
     return {"overall_accuracy": overall_accuracy, "recall_by_category": recall_by_category}
+
+
+def backtest_next_show_date(conn, holdout_shows: int = 10) -> list[dict]:
+    """Holds out the last `holdout_shows` chronological shows, trains on everything strictly
+    before the earliest held-out show's date, and for each held-out show predicts the gap
+    since the previous one, walking the accumulator forward through held-out shows as it
+    goes."""
+    dates = next_show_date._ordered_show_dates(conn)
+    if len(dates) <= holdout_shows:
+        raise ValueError(
+            f"Not enough setlists ({len(dates)}) to hold out {holdout_shows} for backtesting"
+        )
+
+    test_dates = dates[-holdout_shows:]
+    cutoff_date = test_dates[0]
+
+    rows, labels = next_show_date.build_training_rows(conn, before_date=cutoff_date)
+    trained_model = next_show_date.train(rows, labels)
+
+    stats = next_show_date._accumulate_stats_before(dates, cutoff_date)
+    results = []
+    for event_date in test_dates:
+        features_row = stats.features_for()
+        predicted_gap = next_show_date.predict_gap_days(trained_model, features_row)
+        actual_gap = (event_date - stats.last_event_date).days
+        predicted_date = stats.last_event_date + timedelta(days=round(predicted_gap))
+
+        results.append(
+            {
+                "event_date": event_date.isoformat(),
+                "actual_gap_days": actual_gap,
+                "predicted_gap_days": predicted_gap,
+                "absolute_error_days": abs(predicted_gap - actual_gap),
+                "predicted_date": predicted_date.isoformat(),
+            }
+        )
+        stats.observe(event_date)
+
+    return results
+
+
+def summarize_next_show_date_backtest(results: list[dict]) -> dict:
+    """Median alongside the mean -- a single held-out show landing right after a real
+    multi-month gap could otherwise dominate the MAE and misrepresent typical accuracy."""
+    errors = [r["absolute_error_days"] for r in results]
+    return {
+        "mae_days": sum(errors) / len(errors) if errors else 0.0,
+        "median_absolute_error_days": statistics.median(errors) if errors else 0.0,
+    }

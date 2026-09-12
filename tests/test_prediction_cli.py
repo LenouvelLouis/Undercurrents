@@ -51,6 +51,7 @@ def test_predict_command_prints_ranked_songs(tmp_path, capsys):
     assert "Other Song" in captured.out
     assert "Predicted setlist length" in captured.out
     assert "Predicted position" in captured.out
+    assert "Predicted next show date" in captured.out
 
 
 def test_evaluate_command_prints_mean_accuracy(tmp_path, capsys):
@@ -64,3 +65,4 @@ def test_evaluate_command_prints_mean_accuracy(tmp_path, capsys):
     assert "%" in captured.out
     assert "Setlist length MAE" in captured.out
     assert "Position category accuracy" in captured.out
+    assert "Next show date" in captured.out

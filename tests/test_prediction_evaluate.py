@@ -109,6 +109,43 @@ def test_backtest_position_category_raises_when_holdout_exceeds_available_setlis
         pass
 
 
+def test_backtest_next_show_date_returns_one_result_per_held_out_show(tmp_conn):
+    _seed_two_alternating_modes(tmp_conn, n_pairs=15)
+
+    results = evaluate.backtest_next_show_date(tmp_conn, holdout_shows=6)
+
+    assert len(results) == 6
+    for r in results:
+        assert set(r) == {
+            "event_date", "actual_gap_days", "predicted_gap_days",
+            "absolute_error_days", "predicted_date",
+        }
+        assert r["absolute_error_days"] == abs(r["predicted_gap_days"] - r["actual_gap_days"])
+
+
+def test_backtest_next_show_date_raises_when_holdout_exceeds_available_setlists(tmp_conn):
+    _seed_two_alternating_modes(tmp_conn, n_pairs=2)
+
+    try:
+        evaluate.backtest_next_show_date(tmp_conn, holdout_shows=1000)
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_summarize_next_show_date_backtest_computes_mean_and_median():
+    results = [
+        {"absolute_error_days": 1.0},
+        {"absolute_error_days": 2.0},
+        {"absolute_error_days": 100.0},  # a rare big miss shouldn't dominate the median
+    ]
+
+    summary = evaluate.summarize_next_show_date_backtest(results)
+
+    assert summary["mae_days"] == (1.0 + 2.0 + 100.0) / 3
+    assert summary["median_absolute_error_days"] == 2.0
+
+
 def test_summarize_position_backtest_computes_overall_accuracy_and_per_category_recall():
     results = [
         {"setlist_id": "s1", "song_id": 1, "actual_category": "opener", "predicted_category": "opener", "correct": True},

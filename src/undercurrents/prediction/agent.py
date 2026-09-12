@@ -1,8 +1,8 @@
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 from undercurrents.clustering.features import variant_song_ids
-from undercurrents.prediction import features, model, position, setlist_length
+from undercurrents.prediction import features, model, next_show_date, position, setlist_length
 from undercurrents.storage import db
 
 
@@ -88,6 +88,17 @@ class PredictionAgent:
 
         prediction_features = position.build_prediction_features(conn, song_id, reference_date)
         return position.predict_proba(trained_model, prediction_features)
+
+    def predict_next_show_date(self, conn, as_of_date: date | None = None) -> date:
+        if as_of_date is None:
+            as_of_date = date.today()
+
+        rows, labels = next_show_date.build_training_rows(conn, before_date=as_of_date)
+        trained_model = next_show_date.train(rows, labels)
+
+        prediction_features, anchor_date = next_show_date.build_prediction_features(conn, as_of_date)
+        predicted_gap = next_show_date.predict_gap_days(trained_model, prediction_features)
+        return anchor_date + timedelta(days=round(predicted_gap))
 
     def predict_encore_probability(self, conn, song_id: int) -> float:
         total, matching = _play_count_matching(conn, song_id, "ss.is_encore = 1")
