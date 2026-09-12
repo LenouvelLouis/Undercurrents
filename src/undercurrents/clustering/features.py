@@ -14,7 +14,7 @@ def _resolve_canonical_id(song_id: int, canonical_map: dict[int, int]) -> int:
     return current
 
 
-def _build_canonical_song_map(conn) -> dict[int, int]:
+def build_canonical_song_map(conn) -> dict[int, int]:
     all_songs = db.get_all_songs(conn)
     canonical_map = {
         row["id"]: row["canonical_song_id"]
@@ -24,7 +24,7 @@ def _build_canonical_song_map(conn) -> dict[int, int]:
     return {row["id"]: _resolve_canonical_id(row["id"], canonical_map) for row in all_songs}
 
 
-def _excluded_song_ids(conn) -> set[int]:
+def excluded_song_ids(conn) -> set[int]:
     return {row["id"] for row in db.get_all_songs(conn) if row["excluded_from_clustering"]}
 
 
@@ -32,8 +32,8 @@ def build_setlist_song_matrix(conn):
     """Returns (setlist_ids, song_ids, matrix): matrix[i, j] = 1.0 if setlist setlist_ids[i]
     contains canonical song song_ids[j], after excluding non-song entries and merging
     alias/MusicBrainz duplicates. Setlists left with zero remaining songs are dropped."""
-    canonical_map = _build_canonical_song_map(conn)
-    excluded = _excluded_song_ids(conn)
+    canonical_map = build_canonical_song_map(conn)
+    excluded = excluded_song_ids(conn)
 
     setlist_songs: dict[str, set[int]] = {}
     for entry in db.get_setlist_song_entries(conn):

@@ -71,6 +71,28 @@ stored in `data/undercurrents.db` (`setlist_clusters`, `song_clusters` tables). 
 `--force-refresh` to re-resolve every title and recompute every cluster from scratch, and
 `--db-path` to use a different database file.
 
+## Running the prediction agent
+
+Once `data/undercurrents.db` has clustering data from Phase 1, rank songs by likelihood of
+appearing in an upcoming show:
+
+```bash
+uv run python -m undercurrents.prediction.cli predict
+```
+
+Add `--date YYYY-MM-DD` to predict as of a specific date instead of today, and `--db-path` to
+use a different database file. To measure how well the model actually predicts real shows it
+hasn't seen:
+
+```bash
+uv run python -m undercurrents.prediction.cli evaluate
+```
+
+This holds out the most recent real shows (`--holdout-shows`, default 10), trains on
+everything before them, and reports the mean top-N accuracy: for each held-out show, what
+fraction of the songs actually played were among the model's N highest-probability
+predictions (N = the number of songs actually played that night).
+
 ## Tests
 
 Run the full test suite:
