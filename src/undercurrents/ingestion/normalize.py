@@ -45,6 +45,8 @@ def normalize_setlist(raw: RawSetlist) -> NormalizedSetlist:
                 )
             )
 
+    info = raw.info.strip() if raw.info and raw.info.strip() else None
+
     return NormalizedSetlist(
         id=raw.id,
         event_date=event_date,
@@ -54,4 +56,5 @@ def normalize_setlist(raw: RawSetlist) -> NormalizedSetlist:
         venue=venue,
         tour=tour,
         songs=songs,
+        info=info,
     )

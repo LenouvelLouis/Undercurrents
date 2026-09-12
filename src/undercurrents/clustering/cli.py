@@ -1,8 +1,9 @@
 import argparse
 from pathlib import Path
 
-from undercurrents.clustering import clusters, embeddings, features, title_resolution
+from undercurrents.clustering import clusters, embeddings, enrichment, features, title_resolution, venue_capacity
 from undercurrents.clustering.mbid_client import MusicBrainzClient
+from undercurrents.clustering.wikidata_client import WikidataClient
 from undercurrents.storage import db
 
 DEFAULT_DB_PATH = "data/undercurrents.db"
@@ -25,6 +26,10 @@ def main(argv=None) -> None:
 
         client = MusicBrainzClient()
         title_resolution.resolve_song_titles(conn, client, force_refresh=args.force_refresh)
+        enrichment.enrich_song_metadata(conn, client, force_refresh=args.force_refresh)
+
+        wikidata_client = WikidataClient()
+        venue_capacity.enrich_venue_capacities(conn, wikidata_client, force_refresh=args.force_refresh)
 
         setlist_ids, _, setlist_matrix = features.build_setlist_song_matrix(conn)
         setlist_embedding = embeddings.compute_2d_embedding(setlist_matrix)

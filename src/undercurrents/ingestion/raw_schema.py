@@ -57,6 +57,7 @@ class RawSetlist(BaseModel):
     tour: RawTour | None = None
     sets: RawSets
     url: str
+    info: str | None = None
 
 
 class RawSetlistsPage(BaseModel):

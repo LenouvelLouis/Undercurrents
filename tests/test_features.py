@@ -89,3 +89,70 @@ def test_build_song_cooccurrence_matrix_counts_shared_setlists(tmp_conn):
     nangs_idx = song_ids.index(db.get_song_id_by_name(tmp_conn, "Nangs"))
     assert matrix[elephant_idx, nangs_idx] == 2
     assert matrix[elephant_idx, elephant_idx] == 0
+
+
+def test_variant_song_ids_includes_canonical_and_its_merged_variants(tmp_conn):
+    db.ensure_songs_clustering_columns(tmp_conn)
+    canonical_id = db.upsert_song(tmp_conn, "Halcyon + On + On")
+    variant_id = db.upsert_song(tmp_conn, "Halcyon And On And On")
+    unrelated_id = db.upsert_song(tmp_conn, "Elephant")
+    tmp_conn.commit()
+    db.set_song_canonical(tmp_conn, variant_id, canonical_id)
+
+    result = features.variant_song_ids(tmp_conn, canonical_id)
+
+    assert set(result) == {canonical_id, variant_id}
+    assert unrelated_id not in result
+
+
+def test_variant_song_ids_returns_only_itself_when_no_variants(tmp_conn):
+    db.ensure_songs_clustering_columns(tmp_conn)
+    song_id = db.upsert_song(tmp_conn, "Elephant")
+    tmp_conn.commit()
+
+    assert features.variant_song_ids(tmp_conn, song_id) == [song_id]
+
+
+def test_build_song_transition_matrix_counts_immediate_transitions(tmp_conn):
+    db.ensure_songs_clustering_columns(tmp_conn)
+    _make_setlist(tmp_conn, "s1", ["Elephant", "Nangs", "Elephant"])
+    _make_setlist(tmp_conn, "s2", ["Elephant", "Nangs"])
+
+    song_ids, matrix = features.build_song_transition_matrix(tmp_conn)
+
+    elephant_idx = song_ids.index(db.get_song_id_by_name(tmp_conn, "Elephant"))
+    nangs_idx = song_ids.index(db.get_song_id_by_name(tmp_conn, "Nangs"))
+    # Elephant -> Nangs happens twice (once per setlist); Nangs -> Elephant happens once
+    # (s1 only); Nangs -> Nangs and Elephant -> Elephant never happen.
+    assert matrix[elephant_idx, nangs_idx] == 2
+    assert matrix[nangs_idx, elephant_idx] == 1
+    assert matrix[elephant_idx, elephant_idx] == 0
+    assert matrix[nangs_idx, nangs_idx] == 0
+
+
+def test_build_song_transition_matrix_skips_excluded_songs_as_connective_tissue(tmp_conn):
+    db.ensure_songs_clustering_columns(tmp_conn)
+    _make_setlist(tmp_conn, "s1", ["Elephant", "Intro", "Nangs"])
+    intro_id = db.get_song_id_by_name(tmp_conn, "Intro")
+    db.set_song_excluded(tmp_conn, intro_id)
+
+    song_ids, matrix = features.build_song_transition_matrix(tmp_conn)
+
+    assert intro_id not in song_ids
+    elephant_idx = song_ids.index(db.get_song_id_by_name(tmp_conn, "Elephant"))
+    nangs_idx = song_ids.index(db.get_song_id_by_name(tmp_conn, "Nangs"))
+    # Elephant -> Nangs still counts as a direct transition once "Intro" is filtered out.
+    assert matrix[elephant_idx, nangs_idx] == 1
+
+
+def test_build_song_transition_matrix_does_not_wrap_across_setlists(tmp_conn):
+    db.ensure_songs_clustering_columns(tmp_conn)
+    _make_setlist(tmp_conn, "s1", ["Elephant"])
+    _make_setlist(tmp_conn, "s2", ["Nangs"])
+
+    song_ids, matrix = features.build_song_transition_matrix(tmp_conn)
+
+    elephant_idx = song_ids.index(db.get_song_id_by_name(tmp_conn, "Elephant"))
+    nangs_idx = song_ids.index(db.get_song_id_by_name(tmp_conn, "Nangs"))
+    assert matrix[elephant_idx, nangs_idx] == 0
+    assert matrix[nangs_idx, elephant_idx] == 0

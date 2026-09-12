@@ -1,9 +1,8 @@
 # Undercurrents
 
-A multi-agent system exploring 18 years of Tame Impala setlists. This project ingests structural data from setlist.fm and MusicBrainz (approximately 750 setlists spanning 2008 to 2026), applies clustering for pattern discovery, predicts song appearances in upcoming performances, and provides a natural-language interface over the band's live history, all presented through a psychedelic and retro-futuristic web UI.
+A data analysis and prediction system exploring 18 years of Tame Impala setlists. This project ingests structural data from setlist.fm and MusicBrainz (approximately 750 setlists spanning 2008 to 2026), cleans and disambiguates song titles, applies clustering for pattern discovery, enriches songs/venues with additional structural metadata, and predicts song appearances in upcoming performances, all presented through a psychedelic and retro-futuristic web UI with a dedicated view per capability.
 
-**Status:** Phases 0-3 (ingestion, clustering, prediction, orchestrator) implemented. See the
-project's internal notes for the full phase roadmap.
+**Status:** Phases 0-2 (ingestion, clustering, prediction) implemented, plus a round of feature enrichment on top (positional prediction features, MusicBrainz metadata, geographic touring cadence, venue capacity). A natural-language chat agent (Phase 3) was built and validated, then removed to keep the focus on classical data analysis/prediction — see the project's internal notes for the full history and roadmap.
 
 ## Setup
 
@@ -11,8 +10,6 @@ project's internal notes for the full phase roadmap.
 
 - Python 3.12+
 - `uv` (fast Python package installer)
-- [Ollama](https://ollama.com) with `llama3.1:8b` pulled (`ollama pull llama3.1:8b`), for the
-  orchestrator/chat agent (Phase 3) — not needed for ingestion, clustering, or prediction.
 
 ### Installation
 
@@ -62,21 +59,23 @@ Optional flags:
 ## Running the clustering pipeline
 
 Once `data/undercurrents.db` has been populated by the ingestion pipeline, resolve song
-titles via MusicBrainz and compute the setlist/song clustering:
+titles, enrich metadata, and compute the setlist/song clustering:
 
 ```bash
 uv run python -m undercurrents.clustering.cli run
 ```
 
-This desambiguates song titles (MusicBrainz + a manual alias table for spelling variants and
-non-song entries like intros/jams), then clusters setlists and songs into a 2D embedding
-stored in `data/undercurrents.db` (`setlist_clusters`, `song_clusters` tables). Add
-`--force-refresh` to re-resolve every title and recompute every cluster from scratch, and
-`--db-path` to use a different database file.
+This:
+- Desambiguates song titles (MusicBrainz + a manual alias table for spelling variants and non-song entries like intros/jams)
+- Enriches resolved songs with release date, duration, and genre tags from MusicBrainz
+- Looks up venue capacity on Wikidata where an unambiguous match exists (conservative — many venues won't match, by design; see `CLAUDE.md` for a known networking caveat with this step)
+- Clusters setlists and songs into a 2D embedding stored in `data/undercurrents.db` (`setlist_clusters`, `song_clusters` tables)
+
+Add `--force-refresh` to re-resolve/re-enrich everything and recompute every cluster from scratch, and `--db-path` to use a different database file.
 
 ## Running the prediction agent
 
-Once `data/undercurrents.db` has clustering data from Phase 1, rank songs by likelihood of
+Once `data/undercurrents.db` has clustering data, rank songs by likelihood of
 appearing in an upcoming show:
 
 ```bash
@@ -94,27 +93,9 @@ uv run python -m undercurrents.prediction.cli evaluate
 This holds out the most recent real shows (`--holdout-shows`, default 10), trains on
 everything before them, and reports the mean top-N accuracy: for each held-out show, what
 fraction of the songs actually played were among the model's N highest-probability
-predictions (N = the number of songs actually played that night).
-
-## Chatting with the orchestrator
-
-Requires [Ollama](https://ollama.com) running locally (`ollama serve`) with `llama3.1:8b`
-pulled. Ask a single question:
-
-```bash
-uv run python -m undercurrents.orchestrator.cli ask "When did they last play Elephant?"
-```
-
-Or start an interactive chat that keeps conversation context for the session:
-
-```bash
-uv run python -m undercurrents.orchestrator.cli chat
-```
-
-The orchestrator routes each question to raw historical facts, the Phase 2 prediction agent,
-or Phase 1's cluster/stats data based on keywords in the question — it's a simple
-keyword-based router, not full natural-language understanding, so unusually phrased questions
-may fall back to a generic chat response without specific data attached.
+predictions (N = the number of songs actually played that night). `PredictionAgent` also
+exposes `predict_opener_probability`, `predict_closer_probability`, and
+`predict_encore_probability` per song.
 
 ## Tests
 
@@ -124,14 +105,16 @@ Run the full test suite:
 uv run pytest -v
 ```
 
-All 40 tests pass with zero network calls: HTTP interactions are mocked using respx, ensuring tests run fast and reliably without hitting external APIs.
+All tests pass with zero real network calls: HTTP interactions with setlist.fm, MusicBrainz,
+and Wikidata are all mocked using `respx`, so the suite runs fast and reliably without hitting
+external APIs.
 
 ## Data and legal
 
 This project stores and displays only structural metadata from public APIs: song titles,
-dates, venues, tour names, and set order from setlist.fm. A later phase will add MusicBrainz
-for song title disambiguation; it is not yet integrated.
+dates, venues, tour names, set order (setlist.fm), release dates/duration/genre tags and
+title disambiguation (MusicBrainz), and venue capacity where available (Wikidata).
 
-No lyrics, audio, or copyrighted content is redistributed. Both APIs' rate limits and terms of
-use are respected. For details on rate limiting and retry logic, see
-`src/undercurrents/ingestion/setlistfm_client.py`.
+No lyrics, audio, or copyrighted content is redistributed. All APIs' rate limits and terms of
+use are respected. For details on rate limiting and retry logic, see the `*_client.py` modules
+under `src/undercurrents/ingestion/` and `src/undercurrents/clustering/`.

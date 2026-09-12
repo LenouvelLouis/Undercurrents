@@ -233,3 +233,165 @@ def test_ensure_songs_clustering_columns_defaults_excluded_to_zero(tmp_conn):
         "SELECT excluded_from_clustering FROM songs WHERE id = ?", (song_id,)
     ).fetchone()
     assert row["excluded_from_clustering"] == 0
+
+
+def test_ensure_songs_enrichment_columns_is_idempotent(tmp_conn):
+    from undercurrents.storage import db
+
+    db.ensure_songs_enrichment_columns(tmp_conn)
+    db.ensure_songs_enrichment_columns(tmp_conn)  # must not raise on second call
+
+    columns = {row["name"] for row in tmp_conn.execute("PRAGMA table_info(songs)")}
+    assert {"release_date", "duration_ms", "genre_tags"} <= columns
+
+
+def test_get_songs_needing_enrichment_only_returns_resolved_unenriched_songs(tmp_conn):
+    from undercurrents.storage import db
+
+    db.ensure_songs_clustering_columns(tmp_conn)
+    db.ensure_songs_enrichment_columns(tmp_conn)
+
+    resolved_id = db.upsert_song(tmp_conn, "Elephant")
+    unresolved_id = db.upsert_song(tmp_conn, "Unresolved Song")
+    tmp_conn.commit()
+    db.set_song_mbid(tmp_conn, resolved_id, "fake-mbid-1")
+
+    needing = {row["id"] for row in db.get_songs_needing_enrichment(tmp_conn)}
+
+    assert needing == {resolved_id}
+    assert unresolved_id not in needing
+
+
+def test_get_songs_needing_enrichment_excludes_already_enriched_songs(tmp_conn):
+    from undercurrents.storage import db
+
+    db.ensure_songs_clustering_columns(tmp_conn)
+    db.ensure_songs_enrichment_columns(tmp_conn)
+
+    song_id = db.upsert_song(tmp_conn, "Elephant")
+    tmp_conn.commit()
+    db.set_song_mbid(tmp_conn, song_id, "fake-mbid-1")
+    db.set_song_metadata(tmp_conn, song_id, release_date="2012-10-05", duration_ms=275000, genre_tags="[]")
+
+    needing = db.get_songs_needing_enrichment(tmp_conn)
+
+    assert needing == []
+
+
+def test_set_song_metadata_round_trips(tmp_conn):
+    from undercurrents.storage import db
+
+    db.ensure_songs_clustering_columns(tmp_conn)
+    db.ensure_songs_enrichment_columns(tmp_conn)
+    song_id = db.upsert_song(tmp_conn, "Elephant")
+    tmp_conn.commit()
+
+    db.set_song_metadata(
+        tmp_conn, song_id, release_date="2012-10-05", duration_ms=275000, genre_tags='["psychedelic rock"]'
+    )
+
+    row = tmp_conn.execute(
+        "SELECT release_date, duration_ms, genre_tags FROM songs WHERE id = ?", (song_id,)
+    ).fetchone()
+    assert row["release_date"] == "2012-10-05"
+    assert row["duration_ms"] == 275000
+    assert row["genre_tags"] == '["psychedelic rock"]'
+
+
+def test_ensure_venues_capacity_column_is_idempotent(tmp_conn):
+    from undercurrents.storage import db
+
+    db.ensure_venues_capacity_column(tmp_conn)
+    db.ensure_venues_capacity_column(tmp_conn)  # must not raise on second call
+
+    columns = {row["name"] for row in tmp_conn.execute("PRAGMA table_info(venues)")}
+    assert "capacity" in columns
+
+
+def test_get_venues_needing_capacity_excludes_already_set(tmp_conn):
+    from undercurrents.ingestion.models import Venue
+    from undercurrents.storage import db
+
+    db.ensure_venues_capacity_column(tmp_conn)
+    db.upsert_venue(tmp_conn, Venue(id="v1", name="Venue One", city="C", state=None, country="Country"))
+    db.upsert_venue(tmp_conn, Venue(id="v2", name="Venue Two", city="C", state=None, country="Country"))
+    tmp_conn.commit()
+    db.set_venue_capacity(tmp_conn, "v1", 5000)
+
+    needing = {row["id"] for row in db.get_venues_needing_capacity(tmp_conn)}
+
+    assert needing == {"v2"}
+
+
+def test_set_venue_capacity_round_trips(tmp_conn):
+    from undercurrents.ingestion.models import Venue
+    from undercurrents.storage import db
+
+    db.ensure_venues_capacity_column(tmp_conn)
+    db.upsert_venue(tmp_conn, Venue(id="v1", name="Venue One", city="C", state=None, country="Country"))
+    tmp_conn.commit()
+
+    db.set_venue_capacity(tmp_conn, "v1", 19812)
+
+    row = tmp_conn.execute("SELECT capacity FROM venues WHERE id = ?", ("v1",)).fetchone()
+    assert row["capacity"] == 19812
+
+
+def test_ensure_setlists_info_column_is_idempotent(tmp_conn):
+    from undercurrents.storage import db
+
+    db.ensure_setlists_info_column(tmp_conn)
+    db.ensure_setlists_info_column(tmp_conn)  # must not raise on second call
+
+    columns = {row["name"] for row in tmp_conn.execute("PRAGMA table_info(setlists)")}
+    assert "info" in columns
+
+
+def test_save_setlist_stores_setlist_level_info(tmp_conn):
+    from undercurrents.ingestion.normalize import normalize_setlist
+    from undercurrents.ingestion.raw_schema import RawSetlist
+    from undercurrents.storage import db
+    from tests.helpers import make_raw_setlist_dict
+
+    normalized = normalize_setlist(
+        RawSetlist.model_validate(make_raw_setlist_dict(info="Setlist incomplete"))
+    )
+    db.save_setlist(tmp_conn, normalized)
+
+    row = tmp_conn.execute(
+        "SELECT info FROM setlists WHERE id = ?", (normalized.id,)
+    ).fetchone()
+    assert row["info"] == "Setlist incomplete"
+
+
+def test_save_setlist_stores_null_info_when_absent(tmp_conn):
+    from undercurrents.ingestion.normalize import normalize_setlist
+    from undercurrents.ingestion.raw_schema import RawSetlist
+    from undercurrents.storage import db
+    from tests.helpers import make_raw_setlist_dict
+
+    normalized = normalize_setlist(RawSetlist.model_validate(make_raw_setlist_dict()))
+    db.save_setlist(tmp_conn, normalized)
+
+    row = tmp_conn.execute(
+        "SELECT info FROM setlists WHERE id = ?", (normalized.id,)
+    ).fetchone()
+    assert row["info"] is None
+
+
+def test_get_setlist_song_entries_includes_position(tmp_conn):
+    from undercurrents.ingestion.normalize import normalize_setlist
+    from undercurrents.ingestion.raw_schema import RawSetlist
+    from undercurrents.storage import db
+    from tests.helpers import make_raw_setlist_dict
+
+    normalized = normalize_setlist(
+        RawSetlist.model_validate(
+            make_raw_setlist_dict(songs=[{"name": "Let It Happen"}, {"name": "Elephant"}])
+        )
+    )
+    db.save_setlist(tmp_conn, normalized)
+
+    entries = {e["song_id"]: e["position"] for e in db.get_setlist_song_entries(tmp_conn)}
+    positions = sorted(entries.values())
+    assert positions == [1, 2]

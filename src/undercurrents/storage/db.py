@@ -109,6 +109,13 @@ def upsert_cover_artist(conn: sqlite3.Connection, name: str) -> str:
     return artist_id
 
 
+def ensure_setlists_info_column(conn: sqlite3.Connection) -> None:
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(setlists)")}
+    if "info" not in existing:
+        conn.execute("ALTER TABLE setlists ADD COLUMN info TEXT")
+    conn.commit()
+
+
 def save_setlist(conn: sqlite3.Connection, normalized: NormalizedSetlist) -> None:
     try:
         upsert_artist(conn, normalized.artist)
@@ -122,15 +129,16 @@ def save_setlist(conn: sqlite3.Connection, normalized: NormalizedSetlist) -> Non
         conn.execute(
             """
             INSERT INTO setlists
-                (id, event_date, tour_id, venue_id, artist_id, url, last_updated_source)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (id, event_date, tour_id, venue_id, artist_id, url, last_updated_source, info)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 event_date = excluded.event_date,
                 tour_id = excluded.tour_id,
                 venue_id = excluded.venue_id,
                 artist_id = excluded.artist_id,
                 url = excluded.url,
-                last_updated_source = excluded.last_updated_source
+                last_updated_source = excluded.last_updated_source,
+                info = excluded.info
             """,
             (
                 normalized.id,
@@ -140,6 +148,7 @@ def save_setlist(conn: sqlite3.Connection, normalized: NormalizedSetlist) -> Non
                 normalized.artist.id,
                 normalized.url,
                 normalized.last_updated_source,
+                normalized.info,
             ),
         )
 
@@ -200,6 +209,57 @@ def get_unresolved_songs(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     ).fetchall()
 
 
+def ensure_songs_enrichment_columns(conn: sqlite3.Connection) -> None:
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(songs)")}
+    if "release_date" not in existing:
+        conn.execute("ALTER TABLE songs ADD COLUMN release_date TEXT")
+    if "duration_ms" not in existing:
+        conn.execute("ALTER TABLE songs ADD COLUMN duration_ms INTEGER")
+    if "genre_tags" not in existing:
+        conn.execute("ALTER TABLE songs ADD COLUMN genre_tags TEXT")
+    conn.commit()
+
+
+def get_songs_needing_enrichment(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute(
+        """
+        SELECT id, mbid FROM songs
+        WHERE mbid IS NOT NULL
+          AND release_date IS NULL AND duration_ms IS NULL AND genre_tags IS NULL
+        """
+    ).fetchall()
+
+
+def ensure_venues_capacity_column(conn: sqlite3.Connection) -> None:
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(venues)")}
+    if "capacity" not in existing:
+        conn.execute("ALTER TABLE venues ADD COLUMN capacity INTEGER")
+    conn.commit()
+
+
+def get_venues_needing_capacity(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute("SELECT id, name, country FROM venues WHERE capacity IS NULL").fetchall()
+
+
+def set_venue_capacity(conn: sqlite3.Connection, venue_id: str, capacity: int) -> None:
+    conn.execute("UPDATE venues SET capacity = ? WHERE id = ?", (capacity, venue_id))
+    conn.commit()
+
+
+def set_song_metadata(
+    conn: sqlite3.Connection,
+    song_id: int,
+    release_date: str | None,
+    duration_ms: int | None,
+    genre_tags: str | None,
+) -> None:
+    conn.execute(
+        "UPDATE songs SET release_date = ?, duration_ms = ?, genre_tags = ? WHERE id = ?",
+        (release_date, duration_ms, genre_tags, song_id),
+    )
+    conn.commit()
+
+
 def get_song_id_by_name(conn: sqlite3.Connection, name: str) -> int | None:
     row = conn.execute("SELECT id FROM songs WHERE name = ?", (name,)).fetchone()
     return row["id"] if row else None
@@ -234,7 +294,7 @@ def get_all_songs(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 
 
 def get_setlist_song_entries(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute("SELECT setlist_id, song_id FROM setlist_songs").fetchall()
+    return conn.execute("SELECT setlist_id, song_id, position FROM setlist_songs").fetchall()
 
 
 def replace_setlist_clusters(

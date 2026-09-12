@@ -25,6 +25,24 @@ def test_normalize_setlist_without_tour():
     assert normalized.tour is None
 
 
+def test_normalize_setlist_info_defaults_to_none():
+    raw = RawSetlist.model_validate(make_raw_setlist_dict())
+    normalized = normalize_setlist(raw)
+    assert normalized.info is None
+
+
+def test_normalize_setlist_info_is_captured():
+    raw = RawSetlist.model_validate(make_raw_setlist_dict(info="Setlist incomplete"))
+    normalized = normalize_setlist(raw)
+    assert normalized.info == "Setlist incomplete"
+
+
+def test_normalize_setlist_blank_info_becomes_none():
+    raw = RawSetlist.model_validate(make_raw_setlist_dict(info="   "))
+    normalized = normalize_setlist(raw)
+    assert normalized.info is None
+
+
 def test_normalize_cover_song():
     songs = [{"name": "Adventure of a Lifetime", "cover": {"name": "Coldplay"}}]
     raw = RawSetlist.model_validate(make_raw_setlist_dict(songs=songs))

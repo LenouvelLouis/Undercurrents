@@ -35,6 +35,7 @@ def main(argv=None) -> None:
         conn = db.get_connection(db_path)
         try:
             db.initialize_schema(conn)
+            db.ensure_setlists_info_column(conn)
             client = SetlistFmClient(api_key=api_key)
 
             artist_mbid = resolve_artist_mbid(conn, client, force_refresh=args.force_refresh)

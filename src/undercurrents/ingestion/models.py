@@ -44,3 +44,4 @@ class NormalizedSetlist:
     venue: Venue
     tour: Tour | None
     songs: list[SetlistSongEntry] = field(default_factory=list)
+    info: str | None = None

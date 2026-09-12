@@ -71,3 +71,62 @@ def test_predict_encore_probability_is_zero_for_never_played_song(tmp_conn):
     probability = PredictionAgent().predict_encore_probability(tmp_conn, fake_song_id)
 
     assert probability == 0.0
+
+
+def test_predict_encore_probability_includes_merged_variant_plays(tmp_conn):
+    _seed_history(tmp_conn)
+    canonical_id = db.get_song_id_by_name(tmp_conn, "Common Song")
+    variant_id = db.upsert_song(tmp_conn, "Common Song (Live Variant)")
+    tmp_conn.commit()
+    db.set_song_canonical(tmp_conn, variant_id, canonical_id)
+    # "Common Song" itself is never in the encore in the fixture (always position 1), so its
+    # own encore probability is 0 — but if a merged variant's plays were always in the encore,
+    # the canonical id's probability must reflect that too.
+    _setlist(tmp_conn, "s-variant", "2020-07-01", ["Filler", "Common Song (Live Variant)"], tour_id=1)
+    tmp_conn.execute(
+        "UPDATE setlist_songs SET is_encore = 1 WHERE setlist_id = 's-variant' AND song_id = ?",
+        (variant_id,),
+    )
+    tmp_conn.commit()
+
+    probability = PredictionAgent().predict_encore_probability(tmp_conn, canonical_id)
+
+    assert probability == 1 / 7  # 1 encore play (the variant) out of 6+1 total plays
+
+
+def test_predict_opener_probability_reflects_historical_ratio(tmp_conn):
+    _seed_history(tmp_conn)
+    common_song_id = db.get_song_id_by_name(tmp_conn, "Common Song")
+
+    probability = PredictionAgent().predict_opener_probability(tmp_conn, common_song_id)
+
+    assert probability == 1.0  # "Common Song" is always listed (and thus positioned) first
+
+
+def test_predict_opener_probability_is_zero_for_never_played_song(tmp_conn):
+    _seed_history(tmp_conn)
+    fake_song_id = db.upsert_song(tmp_conn, "Never Played")
+    tmp_conn.commit()
+
+    probability = PredictionAgent().predict_opener_probability(tmp_conn, fake_song_id)
+
+    assert probability == 0.0
+
+
+def test_predict_closer_probability_reflects_historical_ratio(tmp_conn):
+    _seed_history(tmp_conn)
+    encore_song_id = db.get_song_id_by_name(tmp_conn, "Encore Song")
+
+    probability = PredictionAgent().predict_closer_probability(tmp_conn, encore_song_id)
+
+    assert probability == 1.0  # "Encore Song" is always the last (2nd) song of its setlist
+
+
+def test_predict_closer_probability_is_zero_for_never_played_song(tmp_conn):
+    _seed_history(tmp_conn)
+    fake_song_id = db.upsert_song(tmp_conn, "Never Played")
+    tmp_conn.commit()
+
+    probability = PredictionAgent().predict_closer_probability(tmp_conn, fake_song_id)
+
+    assert probability == 0.0

@@ -3,10 +3,11 @@ def make_raw_setlist_dict(
     event_date="30-08-2019",
     tour_name="Currents Tour",
     songs=None,
+    info=None,
 ):
     if songs is None:
         songs = [{"name": "Let It Happen"}]
-    return {
+    raw = {
         "id": setlist_id,
         "eventDate": event_date,
         "lastUpdated": "2019-09-01T12:00:00.000+0000",
@@ -24,6 +25,9 @@ def make_raw_setlist_dict(
         "sets": {"set": [{"song": songs}]},
         "url": f"https://www.setlist.fm/setlist/tame-impala/{setlist_id}.html",
     }
+    if info is not None:
+        raw["info"] = info
+    return raw
 
 
 def make_mbid_search_response(recordings=None):

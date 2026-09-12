@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS setlists (
     venue_id            TEXT REFERENCES venues(id),
     artist_id           TEXT REFERENCES artists(id),
     url                 TEXT NOT NULL,
-    last_updated_source TEXT NOT NULL
+    last_updated_source TEXT NOT NULL,
+    info                TEXT
 );
 
 CREATE TABLE IF NOT EXISTS songs (

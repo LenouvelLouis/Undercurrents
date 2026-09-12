@@ -18,6 +18,16 @@ def test_raw_setlist_allows_missing_tour():
     assert parsed.tour is None
 
 
+def test_raw_setlist_allows_missing_info():
+    parsed = RawSetlist.model_validate(make_raw_setlist_dict())
+    assert parsed.info is None
+
+
+def test_raw_setlist_parses_info_when_present():
+    parsed = RawSetlist.model_validate(make_raw_setlist_dict(info="Setlist incomplete"))
+    assert parsed.info == "Setlist incomplete"
+
+
 def test_raw_setlist_rejects_missing_required_field():
     data = make_raw_setlist_dict()
     del data["eventDate"]
