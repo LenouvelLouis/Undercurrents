@@ -54,6 +54,27 @@ def test_predict_next_show_defaults_reference_date_to_today(tmp_conn):
     assert len(predictions) == 3
 
 
+def test_predict_setlist_length_returns_a_plausible_float(tmp_conn):
+    _seed_history(tmp_conn)
+
+    predicted = PredictionAgent().predict_setlist_length(tmp_conn, reference_date=date(2020, 7, 1))
+
+    assert isinstance(predicted, float)
+    assert 0.0 <= predicted <= 10.0  # fixture setlists have 2 songs each; a sane model stays near that
+
+
+def test_predict_position_category_returns_a_probability_distribution(tmp_conn):
+    _seed_history(tmp_conn)
+    common_song_id = db.get_song_id_by_name(tmp_conn, "Common Song")
+
+    probabilities = PredictionAgent().predict_position_category(
+        tmp_conn, common_song_id, reference_date=date(2020, 7, 1)
+    )
+
+    assert abs(sum(probabilities.values()) - 1.0) < 1e-6
+    assert all(0.0 <= p <= 1.0 for p in probabilities.values())
+
+
 def test_predict_encore_probability_reflects_historical_ratio(tmp_conn):
     _seed_history(tmp_conn)
     encore_song_id = db.get_song_id_by_name(tmp_conn, "Encore Song")

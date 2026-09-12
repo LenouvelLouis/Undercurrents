@@ -71,6 +71,7 @@ def test_build_training_rows_computes_correct_frequencies_and_labels(tmp_conn):
     assert s2_row_a["global_frequency"] == 1.0
     assert s2_row_a["tour_frequency"] == 1.0  # tour 1 has 1 prior setlist, A was in it
     assert s2_row_a["cluster_frequency"] == 1.0  # last cluster (10) had A
+    assert s2_row_a["country_frequency"] == 1.0  # s1 (the only prior setlist) was in "Country"
     assert label_s2_a == 1  # A is played in s2
     assert label_s2_b == 0  # B is not played in s2
 
@@ -104,8 +105,10 @@ def test_build_prediction_features_covers_all_songs_known_before_reference_date(
     assert set(result) == ids
     for song_features in result.values():
         assert set(song_features) == {
-            "global_frequency", "tour_frequency", "cluster_frequency",
+            "global_frequency", "tour_frequency", "cluster_frequency", "country_frequency",
             "shows_since_last_played", "days_since_last_played",
+            "current_streak", "cluster_entropy",
+            "is_holiday", "duration_minutes",
         }
 
 
@@ -121,3 +124,96 @@ def test_build_prediction_features_uses_supplied_tour_id(tmp_conn):
     # directly rather than a numeric literal, keeping the test tied to the real computation).
     assert with_tour[song_a]["tour_frequency"] == 1.0
     assert without_tour[song_a]["tour_frequency"] == without_tour[song_a]["global_frequency"]
+
+
+def test_build_prediction_features_uses_supplied_country(tmp_conn):
+    db.ensure_songs_clustering_columns(tmp_conn)
+    _setlist(tmp_conn, "s1", "2020-01-01", ["Song A"])  # country "Country" (helper default)
+
+    def _second_country_setlist(conn, setlist_id, event_date, song_names):
+        from undercurrents.ingestion.models import Artist, NormalizedSetlist, SetlistSongEntry, Venue
+
+        artist = Artist(id="a1", name="Tame Impala", mbid="a1")
+        venue = Venue(id="v2", name="V2", city="C2", state=None, country="Other Country")
+        songs = [
+            SetlistSongEntry(i + 1, 1, name, False, False, None, False, None)
+            for i, name in enumerate(song_names)
+        ]
+        db.save_setlist(
+            conn,
+            NormalizedSetlist(
+                id=setlist_id, event_date=event_date, last_updated_source="x",
+                url=f"https://x/{setlist_id}", artist=artist, venue=venue, tour=None, songs=songs,
+            ),
+        )
+
+    _second_country_setlist(tmp_conn, "s2", "2020-02-01", ["Song B"])
+    song_a = db.get_song_id_by_name(tmp_conn, "Song A")
+
+    same_country = features.build_prediction_features(tmp_conn, date(2020, 4, 1), country="Country")
+    other_country = features.build_prediction_features(tmp_conn, date(2020, 4, 1), country="Other Country")
+    no_country = features.build_prediction_features(tmp_conn, date(2020, 4, 1), country=None)
+
+    # "Country" had 1 setlist, and A was in it -> 100% country_frequency there.
+    assert same_country[song_a]["country_frequency"] == 1.0
+    # "Other Country" had 1 setlist, and A was NOT in it -> 0% country_frequency there.
+    assert other_country[song_a]["country_frequency"] == 0.0
+    # With no country hint, falls back to global_frequency (A played in 1 of 2 setlists).
+    assert no_country[song_a]["country_frequency"] == no_country[song_a]["global_frequency"] == 0.5
+
+
+def test_build_prediction_features_uses_known_song_duration(tmp_conn):
+    ids = _seed_three_setlists(tmp_conn)
+    db.ensure_songs_enrichment_columns(tmp_conn)
+    song_a = db.get_song_id_by_name(tmp_conn, "Song A")
+    song_b = db.get_song_id_by_name(tmp_conn, "Song B")
+    db.set_song_metadata(tmp_conn, song_a, release_date=None, duration_ms=240000, genre_tags="[]")
+    # Song B is left unenriched -> its duration must be imputed with A's known value (the only
+    # known one here), not left null/zero.
+
+    result = features.build_prediction_features(tmp_conn, date(2020, 4, 1))
+
+    assert result[song_a]["duration_minutes"] == 4.0  # 240000ms = 4 minutes
+    assert result[song_b]["duration_minutes"] == 4.0  # imputed with the only known value
+
+
+def test_build_prediction_features_duration_imputation_defaults_to_zero_when_none_known(tmp_conn):
+    _seed_three_setlists(tmp_conn)
+    song_a = db.get_song_id_by_name(tmp_conn, "Song A")
+
+    result = features.build_prediction_features(tmp_conn, date(2020, 4, 1))
+
+    assert result[song_a]["duration_minutes"] == 0.0
+
+
+def test_build_training_rows_marks_holidays_using_the_setlist_own_country(tmp_conn):
+    db.ensure_songs_clustering_columns(tmp_conn)
+    _setlist(tmp_conn, "s1", "2020-07-03", ["Song A"])  # not a holiday yet
+    # United States isn't accepted by name in this test fixture's country ("Country"), so use
+    # a real supported country name directly for a deterministic holiday check.
+    from undercurrents.ingestion.models import Artist, NormalizedSetlist, SetlistSongEntry, Venue
+
+    artist = Artist(id="a1", name="Tame Impala", mbid="a1")
+    venue = Venue(id="v-us", name="V", city="C", state=None, country="United States")
+    song = SetlistSongEntry(1, 1, "Song A", False, False, None, False, None)
+    db.save_setlist(
+        tmp_conn,
+        NormalizedSetlist(
+            id="s2", event_date="2020-07-04", last_updated_source="x",
+            url="https://x/s2", artist=artist, venue=venue, tour=None, songs=[song],
+        ),
+    )
+
+    rows, _ = features.build_training_rows(tmp_conn)
+
+    # Row for "Song A" scored against s2 (2020-07-04, US Independence Day).
+    assert rows[-1]["is_holiday"] == 1.0
+
+
+def test_build_prediction_features_is_holiday_false_for_unsupported_country(tmp_conn):
+    _seed_three_setlists(tmp_conn)  # venue country is "Country", unsupported by `holidays`
+    song_a = db.get_song_id_by_name(tmp_conn, "Song A")
+
+    result = features.build_prediction_features(tmp_conn, date(2020, 7, 4), country="Country")
+
+    assert result[song_a]["is_holiday"] == 0.0

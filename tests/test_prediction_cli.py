@@ -15,13 +15,22 @@ def _seed_db(db_path):
     dates = [f"2020-{m:02d}-01" for m in range(1, 9)]
     cluster_rows = []
     for i, event_date in enumerate(dates):
-        name = "Common Song" if i % 2 == 0 else "Other Song"
-        song = SetlistSongEntry(1, 1, name, False, False, None, False, None)
+        # 3 songs per show. "Common Song"/"Other Song" still strictly alternate (exactly one
+        # of the two per show, as before -- keeps the original song-prediction model's binary
+        # labels non-degenerate). "Filler Song" (always mid) and "Closer Song" (always last,
+        # encore on some shows) add the position-category diversity (opener/mid/closer/encore)
+        # the new position model needs -- a single-song show gives it only one class to train on.
+        alternating = "Common Song" if i % 2 == 0 else "Other Song"
+        songs = [
+            SetlistSongEntry(1, 1, alternating, False, False, None, False, None),
+            SetlistSongEntry(2, 1, "Filler Song", False, False, None, False, None),
+            SetlistSongEntry(3, 1, "Closer Song", i % 3 == 0, False, None, False, None),
+        ]
         db.save_setlist(
             conn,
             NormalizedSetlist(
                 id=f"s{i}", event_date=event_date, last_updated_source="x",
-                url=f"https://x/{i}", artist=artist, venue=venue, tour=None, songs=[song],
+                url=f"https://x/{i}", artist=artist, venue=venue, tour=None, songs=songs,
             ),
         )
         conn.execute("UPDATE setlists SET tour_id = 1 WHERE id = ?", (f"s{i}",))
@@ -40,6 +49,8 @@ def test_predict_command_prints_ranked_songs(tmp_path, capsys):
     captured = capsys.readouterr()
     assert "Common Song" in captured.out
     assert "Other Song" in captured.out
+    assert "Predicted setlist length" in captured.out
+    assert "Predicted position" in captured.out
 
 
 def test_evaluate_command_prints_mean_accuracy(tmp_path, capsys):
@@ -51,3 +62,5 @@ def test_evaluate_command_prints_mean_accuracy(tmp_path, capsys):
     captured = capsys.readouterr()
     assert "held-out shows" in captured.out
     assert "%" in captured.out
+    assert "Setlist length MAE" in captured.out
+    assert "Position category accuracy" in captured.out

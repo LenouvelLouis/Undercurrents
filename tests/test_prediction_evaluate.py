@@ -65,3 +65,61 @@ def test_backtest_raises_when_holdout_exceeds_available_setlists(tmp_conn):
         assert False, "expected ValueError"
     except ValueError:
         pass
+
+
+def test_backtest_setlist_length_returns_one_result_per_held_out_show(tmp_conn):
+    _seed_two_alternating_modes(tmp_conn, n_pairs=15)
+
+    results = evaluate.backtest_setlist_length(tmp_conn, holdout_shows=6)
+
+    assert len(results) == 6
+    for r in results:
+        assert set(r) == {"setlist_id", "event_date", "actual_length", "predicted_length", "absolute_error"}
+        assert r["absolute_error"] == abs(r["predicted_length"] - r["actual_length"])
+
+
+def test_backtest_setlist_length_raises_when_holdout_exceeds_available_setlists(tmp_conn):
+    _seed_two_alternating_modes(tmp_conn, n_pairs=2)
+
+    try:
+        evaluate.backtest_setlist_length(tmp_conn, holdout_shows=1000)
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_backtest_position_category_returns_one_result_per_held_out_play(tmp_conn):
+    _seed_two_alternating_modes(tmp_conn, n_pairs=15)
+
+    results = evaluate.backtest_position_category(tmp_conn, holdout_shows=6)
+
+    assert len(results) > 0
+    for r in results:
+        assert set(r) == {"setlist_id", "song_id", "actual_category", "predicted_category", "correct"}
+        assert r["correct"] == (r["predicted_category"] == r["actual_category"])
+
+
+def test_backtest_position_category_raises_when_holdout_exceeds_available_setlists(tmp_conn):
+    _seed_two_alternating_modes(tmp_conn, n_pairs=2)
+
+    try:
+        evaluate.backtest_position_category(tmp_conn, holdout_shows=1000)
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_summarize_position_backtest_computes_overall_accuracy_and_per_category_recall():
+    results = [
+        {"setlist_id": "s1", "song_id": 1, "actual_category": "opener", "predicted_category": "opener", "correct": True},
+        {"setlist_id": "s1", "song_id": 2, "actual_category": "mid", "predicted_category": "mid", "correct": True},
+        {"setlist_id": "s2", "song_id": 3, "actual_category": "encore", "predicted_category": "mid", "correct": False},
+        {"setlist_id": "s2", "song_id": 4, "actual_category": "mid", "predicted_category": "mid", "correct": True},
+    ]
+
+    summary = evaluate.summarize_position_backtest(results)
+
+    assert summary["overall_accuracy"] == 0.75
+    assert summary["recall_by_category"]["opener"] == 1.0
+    assert summary["recall_by_category"]["mid"] == 1.0
+    assert summary["recall_by_category"]["encore"] == 0.0

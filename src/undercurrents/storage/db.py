@@ -294,7 +294,18 @@ def get_all_songs(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 
 
 def get_setlist_song_entries(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute("SELECT setlist_id, song_id, position FROM setlist_songs").fetchall()
+    return conn.execute(
+        "SELECT setlist_id, song_id, position, is_encore FROM setlist_songs"
+    ).fetchall()
+
+
+def get_song_durations_ms(conn: sqlite3.Connection) -> dict[int, int]:
+    """Song id -> duration in ms, for songs that have one. Ensures its own enrichment columns
+    exist first (self-contained), rather than requiring every caller of the widely-used
+    `get_all_songs` to also run `ensure_songs_enrichment_columns`."""
+    ensure_songs_enrichment_columns(conn)
+    rows = conn.execute("SELECT id, duration_ms FROM songs WHERE duration_ms IS NOT NULL").fetchall()
+    return {row["id"]: row["duration_ms"] for row in rows}
 
 
 def replace_setlist_clusters(

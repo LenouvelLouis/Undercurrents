@@ -379,6 +379,29 @@ def test_save_setlist_stores_null_info_when_absent(tmp_conn):
     assert row["info"] is None
 
 
+def test_get_song_durations_ms_returns_known_durations_only(tmp_conn):
+    from undercurrents.storage import db
+
+    db.ensure_songs_clustering_columns(tmp_conn)
+    db.ensure_songs_enrichment_columns(tmp_conn)
+    song_id = db.upsert_song(tmp_conn, "Elephant")
+    other_id = db.upsert_song(tmp_conn, "Unenriched Song")
+    tmp_conn.commit()
+    db.set_song_metadata(tmp_conn, song_id, release_date=None, duration_ms=231000, genre_tags="[]")
+
+    durations = db.get_song_durations_ms(tmp_conn)
+
+    assert durations[song_id] == 231000
+    assert other_id not in durations
+
+
+def test_get_song_durations_ms_ensures_its_own_columns(tmp_conn):
+    from undercurrents.storage import db
+
+    # No ensure_songs_enrichment_columns call beforehand — must not raise.
+    assert db.get_song_durations_ms(tmp_conn) == {}
+
+
 def test_get_setlist_song_entries_includes_position(tmp_conn):
     from undercurrents.ingestion.normalize import normalize_setlist
     from undercurrents.ingestion.raw_schema import RawSetlist
@@ -395,3 +418,23 @@ def test_get_setlist_song_entries_includes_position(tmp_conn):
     entries = {e["song_id"]: e["position"] for e in db.get_setlist_song_entries(tmp_conn)}
     positions = sorted(entries.values())
     assert positions == [1, 2]
+
+
+def test_get_setlist_song_entries_includes_is_encore(tmp_conn):
+    from undercurrents.ingestion.models import Artist, NormalizedSetlist, SetlistSongEntry, Venue
+    from undercurrents.storage import db
+
+    artist = Artist(id="a1", name="Tame Impala", mbid="a1")
+    venue = Venue(id="v1", name="V", city="C", state=None, country="Country")
+    songs = [
+        SetlistSongEntry(1, 1, "Main Song", False, False, None, False, None),
+        SetlistSongEntry(2, 1, "Encore Song", True, False, None, False, None),
+    ]
+    normalized = NormalizedSetlist(
+        id="s1", event_date="2020-01-01", last_updated_source="x",
+        url="https://x/s1", artist=artist, venue=venue, tour=None, songs=songs,
+    )
+    db.save_setlist(tmp_conn, normalized)
+
+    entries = {e["song_id"]: e["is_encore"] for e in db.get_setlist_song_entries(tmp_conn)}
+    assert sorted(entries.values()) == [0, 1]

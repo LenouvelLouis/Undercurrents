@@ -1,4 +1,6 @@
-from undercurrents.prediction import features, model
+from datetime import date
+
+from undercurrents.prediction import features, model, position, setlist_length
 
 
 def backtest(conn, holdout_shows: int = 10) -> list[dict]:
@@ -19,12 +21,18 @@ def backtest(conn, holdout_shows: int = 10) -> list[dict]:
     trained_model = model.train(rows, labels)
 
     stats = features._accumulate_stats_before(setlists, cutoff_date)
+    duration_by_song = features._duration_minutes_by_song(conn)
     results = []
     for setlist in test_setlists:
-        feature_by_song = {
-            song_id: stats.features_for(song_id, setlist["tour_id"], setlist["event_date"])
-            for song_id in stats.known_song_ids()
-        }
+        is_holiday = features._is_holiday_flag(setlist["country"], setlist["event_date"])
+        feature_by_song = {}
+        for song_id in stats.known_song_ids():
+            row = stats.features_for(
+                song_id, setlist["tour_id"], setlist["event_date"], country=setlist["country"]
+            )
+            row["is_holiday"] = is_holiday
+            row["duration_minutes"] = duration_by_song[song_id]
+            feature_by_song[song_id] = row
         probabilities = model.predict_proba(trained_model, feature_by_song)
 
         n = len(setlist["songs"])
@@ -45,3 +53,109 @@ def backtest(conn, holdout_shows: int = 10) -> list[dict]:
         stats.observe(setlist)
 
     return results
+
+
+def backtest_setlist_length(conn, holdout_shows: int = 10) -> list[dict]:
+    """Holds out the last `holdout_shows` chronological setlists, trains on everything
+    strictly before the earliest held-out show's date, and for each held-out show predicts
+    the raw setlist length (see `setlist_length.py`'s length definition), walking the
+    accumulator forward through held-out shows as it goes -- matching how this would be used
+    in production, where each new real show becomes part of the history for the next one."""
+    setlists = setlist_length._ordered_setlists_with_length(conn)
+    if len(setlists) <= holdout_shows:
+        raise ValueError(
+            f"Not enough setlists ({len(setlists)}) to hold out {holdout_shows} for backtesting"
+        )
+
+    test_setlists = setlists[-holdout_shows:]
+    cutoff_date = test_setlists[0]["event_date"]
+
+    rows, labels = setlist_length.build_training_rows(conn, before_date=cutoff_date)
+    trained_model = setlist_length.train(rows, labels)
+
+    stats = setlist_length._accumulate_stats_before(setlists, cutoff_date)
+    results = []
+    for setlist in test_setlists:
+        features_row = stats.features_for(
+            setlist["tour_id"], setlist["event_date"], country=setlist["country"]
+        )
+        predicted = setlist_length.predict(trained_model, features_row)
+        actual = setlist["length"]
+
+        results.append(
+            {
+                "setlist_id": setlist["id"],
+                "event_date": setlist["event_date"].isoformat(),
+                "actual_length": actual,
+                "predicted_length": predicted,
+                "absolute_error": abs(predicted - actual),
+            }
+        )
+        stats.observe(setlist)
+
+    return results
+
+
+def backtest_position_category(conn, holdout_shows: int = 10) -> list[dict]:
+    """Holds out the last `holdout_shows` chronological setlists (by each play's first-seen
+    setlist), trains on everything strictly before the earliest held-out show's date, and for
+    every held-out play predicts a position category, walking the accumulator forward through
+    held-out plays as it goes."""
+    plays = position._ordered_song_plays(conn)
+
+    setlist_dates: dict[str, date] = {}
+    for play in plays:
+        setlist_dates.setdefault(play["setlist_id"], play["event_date"])
+    ordered_setlists = list(setlist_dates.items())
+    if len(ordered_setlists) <= holdout_shows:
+        raise ValueError(
+            f"Not enough setlists ({len(ordered_setlists)}) to hold out {holdout_shows} for backtesting"
+        )
+    cutoff_date = ordered_setlists[-holdout_shows][1]
+
+    rows, labels = position.build_training_rows(conn, before_date=cutoff_date)
+    trained_model = position.train(rows, labels)
+
+    stats = position._accumulate_stats_before(plays, cutoff_date)
+    results = []
+    for play in plays:
+        if play["event_date"] < cutoff_date:
+            continue
+        features_row = stats.features_for(play["song_id"], play["event_date"])
+        probabilities = position.predict_proba(trained_model, features_row)
+        predicted_category = max(probabilities, key=probabilities.get)
+
+        results.append(
+            {
+                "setlist_id": play["setlist_id"],
+                "song_id": play["song_id"],
+                "actual_category": play["category"],
+                "predicted_category": predicted_category,
+                "correct": predicted_category == play["category"],
+            }
+        )
+        stats.observe(play)
+
+    return results
+
+
+def summarize_position_backtest(results: list[dict]) -> dict:
+    """`mid` dominates real data (~81% of plays) -- raw accuracy alone would let a model that
+    always predicts `mid` look deceptively good. Returns overall accuracy alongside recall per
+    category (correctly predicted / actual occurrences), so the per-category signal survives
+    class imbalance."""
+    overall_accuracy = sum(r["correct"] for r in results) / len(results) if results else 0.0
+
+    actual_counts: dict[str, int] = {}
+    correct_counts: dict[str, int] = {}
+    for r in results:
+        category = r["actual_category"]
+        actual_counts[category] = actual_counts.get(category, 0) + 1
+        if r["correct"]:
+            correct_counts[category] = correct_counts.get(category, 0) + 1
+
+    recall_by_category = {
+        category: correct_counts.get(category, 0) / count for category, count in actual_counts.items()
+    }
+
+    return {"overall_accuracy": overall_accuracy, "recall_by_category": recall_by_category}

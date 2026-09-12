@@ -5,8 +5,13 @@ FEATURE_ORDER = [
     "global_frequency",
     "tour_frequency",
     "cluster_frequency",
+    "country_frequency",
     "shows_since_last_played",
     "days_since_last_played",
+    "current_streak",
+    "cluster_entropy",
+    "is_holiday",
+    "duration_minutes",
 ]
 
 

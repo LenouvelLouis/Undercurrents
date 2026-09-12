@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from undercurrents.clustering.features import variant_song_ids
-from undercurrents.prediction import features, model
+from undercurrents.prediction import features, model, position, setlist_length
 from undercurrents.storage import db
 
 
@@ -34,7 +34,11 @@ class SongPrediction:
 
 class PredictionAgent:
     def predict_next_show(
-        self, conn, reference_date: date | None = None, tour_id: int | None = None
+        self,
+        conn,
+        reference_date: date | None = None,
+        tour_id: int | None = None,
+        country: str | None = None,
     ) -> list[SongPrediction]:
         if reference_date is None:
             reference_date = date.today()
@@ -42,7 +46,9 @@ class PredictionAgent:
         rows, labels = features.build_training_rows(conn, before_date=reference_date)
         trained_model = model.train(rows, labels)
 
-        feature_by_song = features.build_prediction_features(conn, reference_date, tour_id=tour_id)
+        feature_by_song = features.build_prediction_features(
+            conn, reference_date, tour_id=tour_id, country=country
+        )
         probabilities = model.predict_proba(trained_model, feature_by_song)
 
         song_names = {row["id"]: row["name"] for row in db.get_all_songs(conn)}
@@ -52,6 +58,36 @@ class PredictionAgent:
         ]
         predictions.sort(key=lambda p: p.probability, reverse=True)
         return predictions
+
+    def predict_setlist_length(
+        self,
+        conn,
+        reference_date: date | None = None,
+        tour_id: int | None = None,
+        country: str | None = None,
+    ) -> float:
+        if reference_date is None:
+            reference_date = date.today()
+
+        rows, labels = setlist_length.build_training_rows(conn, before_date=reference_date)
+        trained_model = setlist_length.train(rows, labels)
+
+        prediction_features = setlist_length.build_prediction_features(
+            conn, reference_date, tour_id=tour_id, country=country
+        )
+        return setlist_length.predict(trained_model, prediction_features)
+
+    def predict_position_category(
+        self, conn, song_id: int, reference_date: date | None = None
+    ) -> dict[str, float]:
+        if reference_date is None:
+            reference_date = date.today()
+
+        rows, labels = position.build_training_rows(conn, before_date=reference_date)
+        trained_model = position.train(rows, labels)
+
+        prediction_features = position.build_prediction_features(conn, song_id, reference_date)
+        return position.predict_proba(trained_model, prediction_features)
 
     def predict_encore_probability(self, conn, song_id: int) -> float:
         total, matching = _play_count_matching(conn, song_id, "ss.is_encore = 1")
