@@ -174,3 +174,86 @@ def save_setlist(conn: sqlite3.Connection, normalized: NormalizedSetlist) -> Non
     except Exception:
         conn.rollback()
         raise
+
+
+def ensure_songs_clustering_columns(conn: sqlite3.Connection) -> None:
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(songs)")}
+    if "mbid" not in existing:
+        conn.execute("ALTER TABLE songs ADD COLUMN mbid TEXT")
+    if "canonical_song_id" not in existing:
+        conn.execute(
+            "ALTER TABLE songs ADD COLUMN canonical_song_id INTEGER REFERENCES songs(id)"
+        )
+    if "excluded_from_clustering" not in existing:
+        conn.execute(
+            "ALTER TABLE songs ADD COLUMN excluded_from_clustering INTEGER NOT NULL DEFAULT 0"
+        )
+    conn.commit()
+
+
+def get_unresolved_songs(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute(
+        """
+        SELECT id, name FROM songs
+        WHERE mbid IS NULL AND canonical_song_id IS NULL AND excluded_from_clustering = 0
+        """
+    ).fetchall()
+
+
+def get_song_id_by_name(conn: sqlite3.Connection, name: str) -> int | None:
+    row = conn.execute("SELECT id FROM songs WHERE name = ?", (name,)).fetchone()
+    return row["id"] if row else None
+
+
+def rename_song(conn: sqlite3.Connection, song_id: int, new_name: str) -> None:
+    conn.execute("UPDATE songs SET name = ? WHERE id = ?", (new_name, song_id))
+    conn.commit()
+
+
+def set_song_mbid(conn: sqlite3.Connection, song_id: int, mbid: str) -> None:
+    conn.execute("UPDATE songs SET mbid = ? WHERE id = ?", (mbid, song_id))
+    conn.commit()
+
+
+def set_song_canonical(conn: sqlite3.Connection, song_id: int, canonical_song_id: int) -> None:
+    conn.execute(
+        "UPDATE songs SET canonical_song_id = ? WHERE id = ?", (canonical_song_id, song_id)
+    )
+    conn.commit()
+
+
+def set_song_excluded(conn: sqlite3.Connection, song_id: int) -> None:
+    conn.execute("UPDATE songs SET excluded_from_clustering = 1 WHERE id = ?", (song_id,))
+    conn.commit()
+
+
+def get_all_songs(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT id, name, mbid, canonical_song_id, excluded_from_clustering FROM songs"
+    ).fetchall()
+
+
+def get_setlist_song_entries(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute("SELECT setlist_id, song_id FROM setlist_songs").fetchall()
+
+
+def replace_setlist_clusters(
+    conn: sqlite3.Connection, rows: list[tuple[str, float, float, int]]
+) -> None:
+    conn.execute("DELETE FROM setlist_clusters")
+    conn.executemany(
+        "INSERT INTO setlist_clusters (setlist_id, x, y, cluster_id) VALUES (?, ?, ?, ?)",
+        rows,
+    )
+    conn.commit()
+
+
+def replace_song_clusters(
+    conn: sqlite3.Connection, rows: list[tuple[int, float, float, int]]
+) -> None:
+    conn.execute("DELETE FROM song_clusters")
+    conn.executemany(
+        "INSERT INTO song_clusters (song_id, x, y, cluster_id) VALUES (?, ?, ?, ?)",
+        rows,
+    )
+    conn.commit()

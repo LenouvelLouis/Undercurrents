@@ -196,3 +196,40 @@ def test_save_setlist_rolls_back_on_failure(tmp_conn):
     db.save_setlist(tmp_conn, normalized)
     count = tmp_conn.execute("SELECT COUNT(*) AS c FROM setlists").fetchone()["c"]
     assert count == 1
+
+
+def test_initialize_schema_creates_clustering_tables(tmp_path):
+    from undercurrents.storage import db
+
+    conn = db.get_connection(tmp_path / "test.db")
+    db.initialize_schema(conn)
+
+    tables = {
+        row["name"]
+        for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    }
+    assert {"setlist_clusters", "song_clusters"} <= tables
+    conn.close()
+
+
+def test_ensure_songs_clustering_columns_is_idempotent(tmp_conn):
+    from undercurrents.storage import db
+
+    db.ensure_songs_clustering_columns(tmp_conn)
+    db.ensure_songs_clustering_columns(tmp_conn)  # must not raise on second call
+
+    columns = {row["name"] for row in tmp_conn.execute("PRAGMA table_info(songs)")}
+    assert {"mbid", "canonical_song_id", "excluded_from_clustering"} <= columns
+
+
+def test_ensure_songs_clustering_columns_defaults_excluded_to_zero(tmp_conn):
+    from undercurrents.storage import db
+
+    db.ensure_songs_clustering_columns(tmp_conn)
+    song_id = db.upsert_song(tmp_conn, "Elephant")
+    tmp_conn.commit()
+
+    row = tmp_conn.execute(
+        "SELECT excluded_from_clustering FROM songs WHERE id = ?", (song_id,)
+    ).fetchone()
+    assert row["excluded_from_clustering"] == 0

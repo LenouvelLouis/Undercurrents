@@ -56,3 +56,17 @@ CREATE TABLE IF NOT EXISTS setlist_songs (
     info             TEXT,
     PRIMARY KEY (setlist_id, position)
 );
+
+CREATE TABLE IF NOT EXISTS setlist_clusters (
+    setlist_id  TEXT PRIMARY KEY REFERENCES setlists(id),
+    x           REAL NOT NULL,
+    y           REAL NOT NULL,
+    cluster_id  INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS song_clusters (
+    song_id     INTEGER PRIMARY KEY REFERENCES songs(id),
+    x           REAL NOT NULL,
+    y           REAL NOT NULL,
+    cluster_id  INTEGER NOT NULL
+);

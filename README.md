@@ -56,6 +56,21 @@ Optional flags:
 - `--force-refresh`: Bypass the cache and refetch all data from the API
 - `--db-path <path>`: Specify a custom path for the database file (default: `data/undercurrents.db`)
 
+## Running the clustering pipeline
+
+Once `data/undercurrents.db` has been populated by the ingestion pipeline, resolve song
+titles via MusicBrainz and compute the setlist/song clustering:
+
+```bash
+uv run python -m undercurrents.clustering.cli run
+```
+
+This desambiguates song titles (MusicBrainz + a manual alias table for spelling variants and
+non-song entries like intros/jams), then clusters setlists and songs into a 2D embedding
+stored in `data/undercurrents.db` (`setlist_clusters`, `song_clusters` tables). Add
+`--force-refresh` to re-resolve every title and recompute every cluster from scratch, and
+`--db-path` to use a different database file.
+
 ## Tests
 
 Run the full test suite:
