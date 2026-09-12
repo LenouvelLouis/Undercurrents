@@ -2,7 +2,8 @@
 
 A multi-agent system exploring 18 years of Tame Impala setlists. This project ingests structural data from setlist.fm and MusicBrainz (approximately 750 setlists spanning 2008 to 2026), applies clustering for pattern discovery, predicts song appearances in upcoming performances, and provides a natural-language interface over the band's live history, all presented through a psychedelic and retro-futuristic web UI.
 
-**Status:** Phase 0 (ingestion) implemented. See the project's internal notes for the full phase roadmap.
+**Status:** Phases 0-3 (ingestion, clustering, prediction, orchestrator) implemented. See the
+project's internal notes for the full phase roadmap.
 
 ## Setup
 
@@ -10,6 +11,8 @@ A multi-agent system exploring 18 years of Tame Impala setlists. This project in
 
 - Python 3.12+
 - `uv` (fast Python package installer)
+- [Ollama](https://ollama.com) with `llama3.1:8b` pulled (`ollama pull llama3.1:8b`), for the
+  orchestrator/chat agent (Phase 3) — not needed for ingestion, clustering, or prediction.
 
 ### Installation
 
@@ -92,6 +95,26 @@ This holds out the most recent real shows (`--holdout-shows`, default 10), train
 everything before them, and reports the mean top-N accuracy: for each held-out show, what
 fraction of the songs actually played were among the model's N highest-probability
 predictions (N = the number of songs actually played that night).
+
+## Chatting with the orchestrator
+
+Requires [Ollama](https://ollama.com) running locally (`ollama serve`) with `llama3.1:8b`
+pulled. Ask a single question:
+
+```bash
+uv run python -m undercurrents.orchestrator.cli ask "When did they last play Elephant?"
+```
+
+Or start an interactive chat that keeps conversation context for the session:
+
+```bash
+uv run python -m undercurrents.orchestrator.cli chat
+```
+
+The orchestrator routes each question to raw historical facts, the Phase 2 prediction agent,
+or Phase 1's cluster/stats data based on keywords in the question — it's a simple
+keyword-based router, not full natural-language understanding, so unusually phrased questions
+may fall back to a generic chat response without specific data attached.
 
 ## Tests
 
