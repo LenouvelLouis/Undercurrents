@@ -36,6 +36,49 @@ def _seed_history(conn):
     db.replace_setlist_clusters(conn, rows)
 
 
+def _setlist_with_country(conn, setlist_id, event_date, country, tour_id):
+    from undercurrents.ingestion.models import Artist, NormalizedSetlist, SetlistSongEntry, Venue
+
+    artist = Artist(id="a1", name="Tame Impala", mbid="a1")
+    venue = Venue(id=f"v-{country}", name="V", city="C", state=None, country=country)
+    song = SetlistSongEntry(1, 1, "Common Song", False, False, None, False, None)
+    normalized = NormalizedSetlist(
+        id=setlist_id, event_date=event_date, last_updated_source="x",
+        url=f"https://x/{setlist_id}", artist=artist, venue=venue, tour=None, songs=[song],
+    )
+    db.save_setlist(conn, normalized)
+    conn.execute("UPDATE setlists SET tour_id = ? WHERE id = ?", (tour_id, setlist_id))
+    conn.commit()
+
+
+def _seed_country_history(conn):
+    conn.execute("INSERT INTO tours (id, name, year_start, year_end) VALUES (1, 'Tour', 2020, 2020)")
+    conn.commit()
+    # 4 shows in Country A, 1 in Country B -- Country A should dominate the ranking.
+    dates = ["2020-01-01", "2020-02-01", "2020-03-01", "2020-04-01", "2020-05-01"]
+    countries = ["Country A", "Country A", "Country B", "Country A", "Country A"]
+    for i, (event_date, country) in enumerate(zip(dates, countries)):
+        _setlist_with_country(conn, f"s{i}", event_date, country, tour_id=1)
+
+
+def test_predict_next_show_country_returns_all_known_countries_sorted_by_probability(tmp_conn):
+    _seed_country_history(tmp_conn)
+
+    predictions = PredictionAgent().predict_next_show_country(tmp_conn, reference_date=date(2020, 6, 1))
+
+    assert {p.country for p in predictions} == {"Country A", "Country B"}
+    probabilities = [p.probability for p in predictions]
+    assert probabilities == sorted(probabilities, reverse=True)
+    assert predictions[0].country == "Country A"  # the historically dominant country
+
+
+def test_predict_next_show_country_defaults_reference_date_to_today(tmp_conn):
+    _seed_country_history(tmp_conn)
+
+    predictions = PredictionAgent().predict_next_show_country(tmp_conn)  # must not raise
+    assert len(predictions) == 2
+
+
 def test_predict_next_show_returns_all_known_songs_sorted_by_probability(tmp_conn):
     _seed_history(tmp_conn)
 

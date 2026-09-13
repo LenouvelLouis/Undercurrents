@@ -1,7 +1,14 @@
 import statistics
 from datetime import date, timedelta
 
-from undercurrents.prediction import features, model, next_show_date, position, setlist_length
+from undercurrents.prediction import (
+    features,
+    model,
+    next_show_date,
+    next_show_location,
+    position,
+    setlist_length,
+)
 
 
 def backtest(conn, holdout_shows: int = 10) -> list[dict]:
@@ -209,3 +216,52 @@ def summarize_next_show_date_backtest(results: list[dict]) -> dict:
         "mae_days": sum(errors) / len(errors) if errors else 0.0,
         "median_absolute_error_days": statistics.median(errors) if errors else 0.0,
     }
+
+
+def backtest_next_show_country(conn, holdout_shows: int = 10) -> list[dict]:
+    """Holds out the last `holdout_shows` chronological setlists, trains on everything
+    strictly before the earliest held-out show's date, and for each held-out show ranks
+    every known country by probability, walking the accumulator forward through held-out
+    shows as it goes."""
+    setlists = next_show_location._ordered_setlists_with_country(conn)
+    if len(setlists) <= holdout_shows:
+        raise ValueError(
+            f"Not enough setlists ({len(setlists)}) to hold out {holdout_shows} for backtesting"
+        )
+
+    test_setlists = setlists[-holdout_shows:]
+    cutoff_date = test_setlists[0]["event_date"]
+
+    rows, labels = next_show_location.build_training_rows(conn, before_date=cutoff_date)
+    trained_model = next_show_location.train(rows, labels)
+
+    stats = next_show_location._accumulate_stats_before(setlists, cutoff_date)
+    results = []
+    for setlist in test_setlists:
+        feature_by_country = {
+            country: stats.features_for(country, setlist["tour_id"], setlist["event_date"])
+            for country in stats.known_country_ids()
+        }
+        probabilities = next_show_location.predict_proba(trained_model, feature_by_country)
+        ranked = sorted(probabilities.items(), key=lambda item: item[1], reverse=True)
+        top_3_countries = [country for country, _ in ranked[:3]]
+
+        results.append(
+            {
+                "setlist_id": setlist["id"],
+                "event_date": setlist["event_date"].isoformat(),
+                "actual_country": setlist["country"],
+                "top_3_countries": top_3_countries,
+                "correct_top_1": bool(top_3_countries) and top_3_countries[0] == setlist["country"],
+                "correct_top_3": setlist["country"] in top_3_countries,
+            }
+        )
+        stats.observe(setlist)
+
+    return results
+
+
+def summarize_next_show_country_backtest(results: list[dict]) -> dict:
+    top_1_accuracy = sum(r["correct_top_1"] for r in results) / len(results) if results else 0.0
+    top_3_accuracy = sum(r["correct_top_3"] for r in results) / len(results) if results else 0.0
+    return {"top_1_accuracy": top_1_accuracy, "top_3_accuracy": top_3_accuracy}

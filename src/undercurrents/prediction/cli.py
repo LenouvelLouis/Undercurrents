@@ -46,6 +46,13 @@ def main(argv=None) -> None:
         predicted_date = PredictionAgent().predict_next_show_date(conn, as_of_date=reference_date)
         print(f"Predicted next show date: {predicted_date.isoformat()}")
 
+        country_predictions = PredictionAgent().predict_next_show_country(
+            conn, reference_date=reference_date
+        )
+        print("Top 3 predicted countries:")
+        for prediction in country_predictions[:3]:
+            print(f"  {prediction.probability:.3f}  {prediction.country}")
+
     elif args.command == "evaluate":
         results = evaluate.backtest(conn, holdout_shows=args.holdout_shows)
         mean_accuracy = sum(r["top_n_accuracy"] for r in results) / len(results)
@@ -69,6 +76,13 @@ def main(argv=None) -> None:
         print(
             f"Next show date MAE: {date_summary['mae_days']:.1f} days "
             f"(median: {date_summary['median_absolute_error_days']:.1f} days)"
+        )
+
+        country_results = evaluate.backtest_next_show_country(conn, holdout_shows=args.holdout_shows)
+        country_summary = evaluate.summarize_next_show_country_backtest(country_results)
+        print(
+            f"Next show country accuracy: top-1={country_summary['top_1_accuracy']:.1%}, "
+            f"top-3={country_summary['top_3_accuracy']:.1%}"
         )
 
     conn.close()

@@ -160,3 +160,77 @@ def test_summarize_position_backtest_computes_overall_accuracy_and_per_category_
     assert summary["recall_by_category"]["opener"] == 1.0
     assert summary["recall_by_category"]["mid"] == 1.0
     assert summary["recall_by_category"]["encore"] == 0.0
+
+
+def _setlist_with_country(conn, setlist_id, event_date, country, tour_id):
+    from undercurrents.ingestion.models import Artist, NormalizedSetlist, SetlistSongEntry, Venue
+
+    artist = Artist(id="a1", name="Tame Impala", mbid="a1")
+    venue = Venue(id=f"v-{country}", name="V", city="C", state=None, country=country)
+    song = SetlistSongEntry(1, 1, "Common Song", False, False, None, False, None)
+    normalized = NormalizedSetlist(
+        id=setlist_id, event_date=event_date, last_updated_source="x",
+        url=f"https://x/{setlist_id}", artist=artist, venue=venue, tour=None, songs=[song],
+    )
+    db.save_setlist(conn, normalized)
+    conn.execute("UPDATE setlists SET tour_id = ? WHERE id = ?", (tour_id, setlist_id))
+    conn.commit()
+
+
+def _seed_two_country_pattern(conn, n_pairs=15):
+    """Alternates Country A / Country B every show -- `is_last_show_country` alone should
+    let the model separate them almost perfectly (predicting "not the last country" wins
+    every time in a strict alternation)."""
+    conn.execute("INSERT INTO tours (id, name, year_start, year_end) VALUES (1, 'Tour', 2020, 2020)")
+    conn.commit()
+    current_date = date(2020, 1, 1)
+    for i in range(n_pairs * 2):
+        country = "Country A" if i % 2 == 0 else "Country B"
+        _setlist_with_country(conn, f"s{i}", current_date.isoformat(), country, tour_id=1)
+        current_date += timedelta(days=10)
+
+
+def test_backtest_next_show_country_returns_one_result_per_held_out_show(tmp_conn):
+    _seed_two_country_pattern(tmp_conn, n_pairs=15)
+
+    results = evaluate.backtest_next_show_country(tmp_conn, holdout_shows=6)
+
+    assert len(results) == 6
+    for r in results:
+        assert set(r) == {
+            "setlist_id", "event_date", "actual_country",
+            "top_3_countries", "correct_top_1", "correct_top_3",
+        }
+        assert r["correct_top_3"] == (r["actual_country"] in r["top_3_countries"])
+
+
+def test_backtest_next_show_country_achieves_high_top1_accuracy_on_strict_alternation(tmp_conn):
+    _seed_two_country_pattern(tmp_conn, n_pairs=15)
+
+    results = evaluate.backtest_next_show_country(tmp_conn, holdout_shows=6)
+
+    top_1_accuracy = sum(r["correct_top_1"] for r in results) / len(results)
+    assert top_1_accuracy >= 0.8
+
+
+def test_backtest_next_show_country_raises_when_holdout_exceeds_available_setlists(tmp_conn):
+    _seed_two_country_pattern(tmp_conn, n_pairs=2)
+
+    try:
+        evaluate.backtest_next_show_country(tmp_conn, holdout_shows=1000)
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_summarize_next_show_country_backtest_computes_top1_and_top3_accuracy():
+    results = [
+        {"correct_top_1": True, "correct_top_3": True},
+        {"correct_top_1": False, "correct_top_3": True},
+        {"correct_top_1": False, "correct_top_3": False},
+    ]
+
+    summary = evaluate.summarize_next_show_country_backtest(results)
+
+    assert summary["top_1_accuracy"] == 1 / 3
+    assert summary["top_3_accuracy"] == 2 / 3

@@ -11,7 +11,8 @@ def _seed_db(db_path):
     conn.commit()
 
     artist = Artist(id="a1", name="Tame Impala", mbid="a1")
-    venue = Venue(id="v1", name="V", city="C", state=None, country="Country")
+    venue_a = Venue(id="v-a", name="V-A", city="C-A", state=None, country="Country A")
+    venue_b = Venue(id="v-b", name="V-B", city="C-B", state=None, country="Country B")
     dates = [f"2020-{m:02d}-01" for m in range(1, 9)]
     cluster_rows = []
     for i, event_date in enumerate(dates):
@@ -20,7 +21,10 @@ def _seed_db(db_path):
         # labels non-degenerate). "Filler Song" (always mid) and "Closer Song" (always last,
         # encore on some shows) add the position-category diversity (opener/mid/closer/encore)
         # the new position model needs -- a single-song show gives it only one class to train on.
+        # The venue alternates Country A / Country B too, so the country model also sees both
+        # classes.
         alternating = "Common Song" if i % 2 == 0 else "Other Song"
+        venue = venue_a if i % 2 == 0 else venue_b
         songs = [
             SetlistSongEntry(1, 1, alternating, False, False, None, False, None),
             SetlistSongEntry(2, 1, "Filler Song", False, False, None, False, None),
@@ -52,6 +56,8 @@ def test_predict_command_prints_ranked_songs(tmp_path, capsys):
     assert "Predicted setlist length" in captured.out
     assert "Predicted position" in captured.out
     assert "Predicted next show date" in captured.out
+    assert "Top 3 predicted countries" in captured.out
+    assert "Country A" in captured.out or "Country B" in captured.out
 
 
 def test_evaluate_command_prints_mean_accuracy(tmp_path, capsys):
@@ -66,3 +72,4 @@ def test_evaluate_command_prints_mean_accuracy(tmp_path, capsys):
     assert "Setlist length MAE" in captured.out
     assert "Position category accuracy" in captured.out
     assert "Next show date" in captured.out
+    assert "Next show country accuracy" in captured.out

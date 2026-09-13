@@ -2,7 +2,14 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from undercurrents.clustering.features import variant_song_ids
-from undercurrents.prediction import features, model, next_show_date, position, setlist_length
+from undercurrents.prediction import (
+    features,
+    model,
+    next_show_date,
+    next_show_location,
+    position,
+    setlist_length,
+)
 from undercurrents.storage import db
 
 
@@ -29,6 +36,12 @@ def _play_count_matching(conn, song_id: int, condition_sql: str) -> tuple[int, i
 class SongPrediction:
     song_id: int
     song_name: str
+    probability: float
+
+
+@dataclass(frozen=True)
+class CountryPrediction:
+    country: str
     probability: float
 
 
@@ -99,6 +112,27 @@ class PredictionAgent:
         prediction_features, anchor_date = next_show_date.build_prediction_features(conn, as_of_date)
         predicted_gap = next_show_date.predict_gap_days(trained_model, prediction_features)
         return anchor_date + timedelta(days=round(predicted_gap))
+
+    def predict_next_show_country(
+        self, conn, reference_date: date | None = None, tour_id: int | None = None
+    ) -> list[CountryPrediction]:
+        if reference_date is None:
+            reference_date = date.today()
+
+        rows, labels = next_show_location.build_training_rows(conn, before_date=reference_date)
+        trained_model = next_show_location.train(rows, labels)
+
+        feature_by_country = next_show_location.build_prediction_features(
+            conn, reference_date, tour_id=tour_id
+        )
+        probabilities = next_show_location.predict_proba(trained_model, feature_by_country)
+
+        predictions = [
+            CountryPrediction(country=country, probability=probability)
+            for country, probability in probabilities.items()
+        ]
+        predictions.sort(key=lambda p: p.probability, reverse=True)
+        return predictions
 
     def predict_encore_probability(self, conn, song_id: int) -> float:
         total, matching = _play_count_matching(conn, song_id, "ss.is_encore = 1")
