@@ -97,6 +97,21 @@ predictions (N = the number of songs actually played that night). `PredictionAge
 exposes `predict_opener_probability`, `predict_closer_probability`, and
 `predict_encore_probability` per song.
 
+## Running the web app
+
+Once `data/undercurrents.db` has clustering and prediction data (Phases 0-2), the web frontend
+reads it through a read-only FastAPI layer. Start both servers, each in its own terminal:
+
+```bash
+uv run uvicorn undercurrents.api.app:app --reload --port 8000
+cd web && npm run dev
+```
+
+Open the printed Vite URL (usually `http://localhost:5173`) — the dev server proxies `/api/*`
+requests to the FastAPI backend on port 8000. The app opens on a landing page with headline
+stats, then two tabs (Predictions, Data Analysis) with five screens each, all backed by real
+data from `data/undercurrents.db`.
+
 ## Tests
 
 Run the full test suite:
