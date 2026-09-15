@@ -9,7 +9,12 @@ interface CardProps {
   className?: string;
 }
 
-export default function Card({ children, tinted, accent = "magenta", className = "" }: CardProps) {
+export default function Card({ children, tinted, accent = "violet", className = "" }: CardProps) {
   const tint = tinted ? accentCardTint[accent] : "bg-white/[0.02] border-white/10";
-  return <div className={`rounded-xl border p-6 ${tint} ${className}`}>{children}</div>;
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border p-6 backdrop-blur-sm ${tint} ${className}`}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      {children}
+    </div>
+  );
 }

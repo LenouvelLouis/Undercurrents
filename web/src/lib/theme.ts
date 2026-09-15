@@ -1,26 +1,26 @@
-export type Accent = "magenta" | "teal";
+export type Accent = "violet" | "ember";
 
 export const accentText: Record<Accent, string> = {
-  magenta: "text-magenta",
-  teal: "text-teal",
+  violet: "text-violet",
+  ember: "text-ember",
 };
 
 export const accentBorder: Record<Accent, string> = {
-  magenta: "border-magenta",
-  teal: "border-teal",
+  violet: "border-violet",
+  ember: "border-ember",
 };
 
 export const accentBg: Record<Accent, string> = {
-  magenta: "bg-magenta",
-  teal: "bg-teal",
+  violet: "bg-violet",
+  ember: "bg-ember",
 };
 
 export const accentBgTint: Record<Accent, string> = {
-  magenta: "bg-magenta/10",
-  teal: "bg-teal/10",
+  violet: "bg-violet/10",
+  ember: "bg-ember/10",
 };
 
 export const accentCardTint: Record<Accent, string> = {
-  magenta: "bg-magenta/15 border-magenta/40",
-  teal: "bg-teal/15 border-teal/40",
+  violet: "bg-violet/15 border-violet/40",
+  ember: "bg-ember/15 border-ember/40",
 };

@@ -2,6 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   @apply bg-bg text-white font-body;
+  font-feature-settings: "ss01" 1;
 }
+
+::selection {
+  /* Literal values, not theme("colors.violet.DEFAULT") -- Tailwind's in-CSS theme()
+     function can't resolve a custom DEFAULT/light/dark added under a color name that
+     collides with one of Tailwind's own built-in 50-950 palettes (violet is a stock
+     Tailwind color); the same extended color resolves fine as a class (bg-violet,
+     border-violet/40, ...) since utility generation uses a different resolution path. */
+  background-color: #a531d6;
+  color: #08040c;
+}
+
+/* Thin, accent-tinted scrollbar so long tables/lists match the rest of the UI */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(165, 49, 214, 0.35);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(165, 49, 214, 0.55);
+}
+
+/* Static film-grain overlay — layered on top of photos and glows for a printed,
+   analog-sleeve texture instead of flat digital gradients. */
+.grain-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: theme("backgroundImage.grain");
+  mix-blend-mode: overlay;
+  opacity: 0.35;
+  pointer-events: none;
+}
+

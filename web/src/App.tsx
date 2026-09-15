@@ -60,7 +60,7 @@ export default function App() {
   }
 
   const tabs = activeTab === "predictions" ? PREDICTION_TABS : ANALYSIS_TABS;
-  const accent = activeTab === "predictions" ? "magenta" : "teal";
+  const accent = activeTab === "predictions" ? "violet" : "ember";
 
   return (
     <div className="pb-16">
@@ -76,7 +76,7 @@ export default function App() {
         yearsEnd={overview?.years_end ?? 0}
       />
       <SubTabRow tabs={tabs} activeIndex={subTabIndex} onChange={setSubTabIndex} accent={accent} />
-      <main className="px-8 py-10">
+      <main className="mx-auto max-w-7xl px-8 py-10">
         {activeTab === "predictions" && subTabIndex === 0 && <NextSetlist />}
         {activeTab === "predictions" && subTabIndex === 1 && <ConcertLength />}
         {activeTab === "predictions" && subTabIndex === 2 && <SongRole />}

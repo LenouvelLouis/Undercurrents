@@ -7,23 +7,31 @@ interface RingGaugeProps {
   children?: React.ReactNode;
 }
 
-export default function RingGauge({ percentage, size = 140, accent = "magenta", children }: RingGaugeProps) {
+export default function RingGauge({ percentage, size = 140, accent = "violet", children }: RingGaugeProps) {
   const strokeWidth = 10;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percentage / 100) * circumference;
-  const strokeClass = accent === "magenta" ? "stroke-magenta" : "stroke-teal";
+  const gradientId = `ring-grad-${accent}`;
+  const gradientStops =
+    accent === "violet" ? ["#e2a6ff", "#a531d6"] : ["#ff9270", "#e2492f"];
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
+        <defs>
+          <linearGradient id={gradientId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={size} y2={size}>
+            <stop offset="0%" stopColor={gradientStops[0]} />
+            <stop offset="100%" stopColor={gradientStops[1]} />
+          </linearGradient>
+        </defs>
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={strokeWidth} />
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          className={strokeClass}
+          stroke={`url(#${gradientId})`}
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
           strokeDashoffset={offset}

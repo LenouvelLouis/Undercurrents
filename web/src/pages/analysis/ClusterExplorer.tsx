@@ -41,6 +41,15 @@ export default function ClusterExplorer() {
       <div className="mt-8 grid grid-cols-2 gap-6">
         <Card className="flex items-center justify-center">
           <svg viewBox="0 0 440 440" width="440" height="440">
+            <defs>
+              <filter id="cluster-glow" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur stdDeviation="6" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
             {[1, 2, 3].map((ring) => (
               <circle key={ring} cx={center} cy={center} r={(ring / 3) * 180} fill="none" stroke="rgba(255,255,255,0.06)" />
             ))}
@@ -57,9 +66,10 @@ export default function ClusterExplorer() {
                   cx={cx}
                   cy={cy}
                   r={r}
-                  fill={selected ? "#f97316" : "#c026d3"}
+                  fill={selected ? "#d99a3f" : "#a531d6"}
                   opacity={selected ? 1 : 0.6}
-                  className="cursor-pointer"
+                  filter={selected ? "url(#cluster-glow)" : undefined}
+                  className="cursor-pointer transition-opacity"
                   onClick={() => setSelectedId(cluster.cluster_id)}
                 />
               );
@@ -75,11 +85,16 @@ export default function ClusterExplorer() {
             <div className="font-mono text-xs text-white/50">concerts in this cluster</div>
             <div className="mt-4 font-mono text-xs text-white/40">Dominant period — {detail.dominant_period} era</div>
             <div className="mt-6 font-mono text-xs uppercase tracking-widest text-white/40">Typical songs</div>
-            <ul className="mt-2 space-y-1">
+            <div className="mt-3 flex flex-wrap gap-2">
               {detail.typical_songs.map((song) => (
-                <li key={song.song_id} className="font-display font-medium">{song.song_name}</li>
+                <span
+                  key={song.song_id}
+                  className="rounded-full border border-violet/40 bg-violet/10 px-3 py-1 font-display text-xs font-medium text-violet-light"
+                >
+                  {song.song_name}
+                </span>
               ))}
-            </ul>
+            </div>
           </Card>
         )}
       </div>
