@@ -1,11 +1,23 @@
 from datetime import date, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 
+from undercurrents.api import predictions as predictions_module
 from undercurrents.api.app import app
 from undercurrents.api.dependencies import get_conn
 from undercurrents.ingestion.models import Artist, NormalizedSetlist, SetlistSongEntry, Venue
+from undercurrents.prediction.frozen_store import FrozenModelStore
 from undercurrents.storage import db
+
+
+@pytest.fixture(autouse=True)
+def _isolated_store(tmp_path, monkeypatch):
+    """Each test seeds its own fresh in-memory `tmp_conn`, so the module-level `store`
+    singleton in api/predictions.py must not carry a cached model from one test's data into
+    the next. Swap in a fresh FrozenModelStore pointed at a fresh tmp_path per test -- the
+    same isolation `tmp_conn` already gives the database layer."""
+    monkeypatch.setattr(predictions_module, "store", FrozenModelStore(models_dir=tmp_path / "models"))
 
 
 def _seed(conn, n=15):
@@ -264,3 +276,27 @@ def test_predictions_endpoint_works_with_fresh_schema_when_ensure_called(tmp_con
 
     assert response.status_code == 503
     assert response.json()["detail"] == "Not enough data to generate a prediction yet"
+
+
+def test_next_setlist_does_not_retrain_on_second_request(tmp_conn, monkeypatch):
+    _seed(tmp_conn)
+    client = _client_with(tmp_conn)
+
+    from undercurrents.prediction import model as model_module
+
+    original_train = model_module.train
+    calls = []
+
+    def _counting_train(rows, labels):
+        calls.append(1)
+        return original_train(rows, labels)
+
+    monkeypatch.setattr(model_module, "train", _counting_train)
+
+    first = client.get("/api/predictions/next-setlist")
+    second = client.get("/api/predictions/next-setlist")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json() == second.json()
+    assert len(calls) == 1

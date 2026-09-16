@@ -52,12 +52,14 @@ class PredictionAgent:
         reference_date: date | None = None,
         tour_id: int | None = None,
         country: str | None = None,
+        trained_model=None,
     ) -> list[SongPrediction]:
         if reference_date is None:
             reference_date = date.today()
 
-        rows, labels = features.build_training_rows(conn, before_date=reference_date)
-        trained_model = model.train(rows, labels)
+        if trained_model is None:
+            rows, labels = features.build_training_rows(conn, before_date=reference_date)
+            trained_model = model.train(rows, labels)
 
         feature_by_song = features.build_prediction_features(
             conn, reference_date, tour_id=tour_id, country=country
@@ -78,12 +80,14 @@ class PredictionAgent:
         reference_date: date | None = None,
         tour_id: int | None = None,
         country: str | None = None,
+        trained_model=None,
     ) -> float:
         if reference_date is None:
             reference_date = date.today()
 
-        rows, labels = setlist_length.build_training_rows(conn, before_date=reference_date)
-        trained_model = setlist_length.train(rows, labels)
+        if trained_model is None:
+            rows, labels = setlist_length.build_training_rows(conn, before_date=reference_date)
+            trained_model = setlist_length.train(rows, labels)
 
         prediction_features = setlist_length.build_prediction_features(
             conn, reference_date, tour_id=tour_id, country=country
@@ -91,36 +95,49 @@ class PredictionAgent:
         return setlist_length.predict(trained_model, prediction_features)
 
     def predict_position_category(
-        self, conn, song_id: int, reference_date: date | None = None
+        self,
+        conn,
+        song_id: int,
+        reference_date: date | None = None,
+        trained_model=None,
     ) -> dict[str, float]:
         if reference_date is None:
             reference_date = date.today()
 
-        rows, labels = position.build_training_rows(conn, before_date=reference_date)
-        trained_model = position.train(rows, labels)
+        if trained_model is None:
+            rows, labels = position.build_training_rows(conn, before_date=reference_date)
+            trained_model = position.train(rows, labels)
 
         prediction_features = position.build_prediction_features(conn, song_id, reference_date)
         return position.predict_proba(trained_model, prediction_features)
 
-    def predict_next_show_date(self, conn, as_of_date: date | None = None) -> date:
+    def predict_next_show_date(
+        self, conn, as_of_date: date | None = None, trained_model=None
+    ) -> date:
         if as_of_date is None:
             as_of_date = date.today()
 
-        rows, labels = next_show_date.build_training_rows(conn, before_date=as_of_date)
-        trained_model = next_show_date.train(rows, labels)
+        if trained_model is None:
+            rows, labels = next_show_date.build_training_rows(conn, before_date=as_of_date)
+            trained_model = next_show_date.train(rows, labels)
 
         prediction_features, anchor_date = next_show_date.build_prediction_features(conn, as_of_date)
         predicted_gap = next_show_date.predict_gap_days(trained_model, prediction_features)
         return anchor_date + timedelta(days=round(predicted_gap))
 
     def predict_next_show_country(
-        self, conn, reference_date: date | None = None, tour_id: int | None = None
+        self,
+        conn,
+        reference_date: date | None = None,
+        tour_id: int | None = None,
+        trained_model=None,
     ) -> list[CountryPrediction]:
         if reference_date is None:
             reference_date = date.today()
 
-        rows, labels = next_show_location.build_training_rows(conn, before_date=reference_date)
-        trained_model = next_show_location.train(rows, labels)
+        if trained_model is None:
+            rows, labels = next_show_location.build_training_rows(conn, before_date=reference_date)
+            trained_model = next_show_location.train(rows, labels)
 
         feature_by_country = next_show_location.build_prediction_features(
             conn, reference_date, tour_id=tour_id

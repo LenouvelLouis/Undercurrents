@@ -4,6 +4,7 @@ from pathlib import Path
 
 from undercurrents.prediction import evaluate
 from undercurrents.prediction.agent import PredictionAgent
+from undercurrents.prediction.frozen_store import FrozenModelStore
 from undercurrents.storage import db
 
 DEFAULT_DB_PATH = "data/undercurrents.db"
@@ -21,6 +22,10 @@ def main(argv=None) -> None:
     evaluate_parser = subparsers.add_parser("evaluate")
     evaluate_parser.add_argument("--holdout-shows", type=int, default=10)
     evaluate_parser.add_argument("--db-path", default=DEFAULT_DB_PATH)
+
+    train_parser = subparsers.add_parser("train-models")
+    train_parser.add_argument("--db-path", default=DEFAULT_DB_PATH)
+    train_parser.add_argument("--models-dir", default="data/models")
 
     args = parser.parse_args(argv)
     conn = db.get_connection(Path(args.db_path))
@@ -84,6 +89,16 @@ def main(argv=None) -> None:
             f"Next show country accuracy: top-1={country_summary['top_1_accuracy']:.1%}, "
             f"top-3={country_summary['top_3_accuracy']:.1%}"
         )
+
+    elif args.command == "train-models":
+        store = FrozenModelStore(models_dir=args.models_dir)
+        result = store.train_all(conn)
+        print(f"Trained and saved {len(result['models'])} models to {args.models_dir}")
+        print(
+            f"Next show date backtest: MAE {result['backtest']['mae_days']:.1f} days "
+            f"(median {result['backtest']['median_absolute_error_days']:.1f} days)"
+        )
+        print(f"Trained at: {result['metadata']['trained_at']}")
 
     conn.close()
 

@@ -112,6 +112,14 @@ requests to the FastAPI backend on port 8000. The app opens on a landing page wi
 stats, then two tabs (Predictions, Data Analysis) with five screens each, all backed by real
 data from `data/undercurrents.db`.
 
+The prediction endpoints serve from frozen models cached in `data/models/` (falling back to
+training on first use if that directory is empty). After ingesting new data, refresh the
+frozen models before restarting the API so predictions reflect it:
+
+```bash
+uv run python -m undercurrents.prediction.cli train-models
+```
+
 ## Tests
 
 Run the full test suite:

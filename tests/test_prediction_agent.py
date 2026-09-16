@@ -203,3 +203,101 @@ def test_predict_closer_probability_is_zero_for_never_played_song(tmp_conn):
     probability = PredictionAgent().predict_closer_probability(tmp_conn, fake_song_id)
 
     assert probability == 0.0
+
+
+def test_predict_next_show_accepts_a_pretrained_model_and_skips_training(tmp_conn, monkeypatch):
+    from undercurrents.prediction import features as features_module
+
+    _seed_history(tmp_conn)
+    rows, labels = features_module.build_training_rows(tmp_conn, before_date=date(2020, 7, 1))
+    from undercurrents.prediction import model as model_module
+
+    pretrained = model_module.train(rows, labels)
+
+    def _fail_if_called(*args, **kwargs):
+        raise AssertionError("build_training_rows should not be called when trained_model is given")
+
+    monkeypatch.setattr(features_module, "build_training_rows", _fail_if_called)
+
+    predictions = PredictionAgent().predict_next_show(
+        tmp_conn, reference_date=date(2020, 7, 1), trained_model=pretrained
+    )
+
+    assert len(predictions) == 3
+
+
+def test_predict_setlist_length_accepts_a_pretrained_model_and_skips_training(tmp_conn, monkeypatch):
+    from undercurrents.prediction import setlist_length as setlist_length_module
+
+    _seed_history(tmp_conn)
+    rows, labels = setlist_length_module.build_training_rows(tmp_conn, before_date=date(2020, 7, 1))
+    pretrained = setlist_length_module.train(rows, labels)
+
+    def _fail_if_called(*args, **kwargs):
+        raise AssertionError("build_training_rows should not be called when trained_model is given")
+
+    monkeypatch.setattr(setlist_length_module, "build_training_rows", _fail_if_called)
+
+    predicted = PredictionAgent().predict_setlist_length(
+        tmp_conn, reference_date=date(2020, 7, 1), trained_model=pretrained
+    )
+
+    assert isinstance(predicted, float)
+
+
+def test_predict_position_category_accepts_a_pretrained_model_and_skips_training(tmp_conn, monkeypatch):
+    from undercurrents.prediction import position as position_module
+
+    _seed_history(tmp_conn)
+    common_song_id = db.get_song_id_by_name(tmp_conn, "Common Song")
+    rows, labels = position_module.build_training_rows(tmp_conn, before_date=date(2020, 7, 1))
+    pretrained = position_module.train(rows, labels)
+
+    def _fail_if_called(*args, **kwargs):
+        raise AssertionError("build_training_rows should not be called when trained_model is given")
+
+    monkeypatch.setattr(position_module, "build_training_rows", _fail_if_called)
+
+    probabilities = PredictionAgent().predict_position_category(
+        tmp_conn, common_song_id, reference_date=date(2020, 7, 1), trained_model=pretrained
+    )
+
+    assert abs(sum(probabilities.values()) - 1.0) < 1e-6
+
+
+def test_predict_next_show_date_accepts_a_pretrained_model_and_skips_training(tmp_conn, monkeypatch):
+    from undercurrents.prediction import next_show_date as next_show_date_module
+
+    _seed_history(tmp_conn)
+    rows, labels = next_show_date_module.build_training_rows(tmp_conn, before_date=date(2020, 7, 1))
+    pretrained = next_show_date_module.train(rows, labels)
+
+    def _fail_if_called(*args, **kwargs):
+        raise AssertionError("build_training_rows should not be called when trained_model is given")
+
+    monkeypatch.setattr(next_show_date_module, "build_training_rows", _fail_if_called)
+
+    predicted = PredictionAgent().predict_next_show_date(
+        tmp_conn, as_of_date=date(2020, 7, 1), trained_model=pretrained
+    )
+
+    assert predicted > date(2020, 6, 1)
+
+
+def test_predict_next_show_country_accepts_a_pretrained_model_and_skips_training(tmp_conn, monkeypatch):
+    from undercurrents.prediction import next_show_location as next_show_location_module
+
+    _seed_country_history(tmp_conn)
+    rows, labels = next_show_location_module.build_training_rows(tmp_conn, before_date=date(2020, 6, 1))
+    pretrained = next_show_location_module.train(rows, labels)
+
+    def _fail_if_called(*args, **kwargs):
+        raise AssertionError("build_training_rows should not be called when trained_model is given")
+
+    monkeypatch.setattr(next_show_location_module, "build_training_rows", _fail_if_called)
+
+    predictions = PredictionAgent().predict_next_show_country(
+        tmp_conn, reference_date=date(2020, 6, 1), trained_model=pretrained
+    )
+
+    assert {p.country for p in predictions} == {"Country A", "Country B"}
