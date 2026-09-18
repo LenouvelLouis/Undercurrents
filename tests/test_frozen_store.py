@@ -112,6 +112,8 @@ def test_train_all_writes_every_artifact_and_metadata(tmp_conn, tmp_path):
         "position_category",
         "next_show_date",
         "next_show_country",
+        "encore",
+        "comeback",
     ]:
         assert (tmp_path / f"{key}.joblib").exists()
     assert (tmp_path / "next_date_backtest.json").exists()
@@ -125,5 +127,11 @@ def test_train_all_writes_every_artifact_and_metadata(tmp_conn, tmp_path):
         "position_category",
         "next_show_date",
         "next_show_country",
+        "encore",
+        "comeback",
     }
     assert "mae_days" in result["backtest"]
+    # The sequence model and the held-out backtests belong to train_slow, not here: this call
+    # has to stay fast enough to run on every ingest.
+    assert not (tmp_path / "running_order.joblib").exists()
+    assert not (tmp_path / "encore_backtest.json").exists()

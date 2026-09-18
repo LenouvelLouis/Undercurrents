@@ -1,10 +1,17 @@
 from datetime import date, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 
 from undercurrents.api.app import app
 from undercurrents.api.dependencies import get_conn
-from undercurrents.ingestion.models import Artist, NormalizedSetlist, SetlistSongEntry, Venue
+from undercurrents.ingestion.models import (
+    Artist,
+    NormalizedSetlist,
+    SetlistSongEntry,
+    Tour,
+    Venue,
+)
 from undercurrents.storage import db
 
 
@@ -337,3 +344,169 @@ def test_build_anecdotes_with_empty_inputs_returns_empty_list():
     result = _build_anecdotes([], [], {}, {}, [])
 
     assert result == []
+
+
+# ---------------------------------------------------------------------------
+# Tours, covers, encores, the song map and cities
+# ---------------------------------------------------------------------------
+
+
+def _setlist_with(conn, setlist_id, event_date, venue, songs, tour=None):
+    artist = Artist(id="a1", name="Tame Impala", mbid="a1")
+    db.save_setlist(
+        conn,
+        NormalizedSetlist(
+            id=setlist_id,
+            event_date=event_date,
+            last_updated_source="x",
+            url=f"https://x/{setlist_id}",
+            artist=artist,
+            venue=venue,
+            tour=tour,
+            songs=songs,
+        ),
+    )
+
+
+def test_tours_counts_shows_venues_and_countries(tmp_conn):
+    conn = tmp_conn
+    v1 = Venue(id="v1", name="Venue One", city="Paris", state=None, country="France")
+    v2 = Venue(id="v2", name="Venue Two", city="Berlin", state=None, country="Germany")
+    two_songs = [
+        SetlistSongEntry(1, 1, "Song A", False, False, None, False, None),
+        SetlistSongEntry(2, 1, "Song B", False, False, None, False, None),
+    ]
+    one_song = [SetlistSongEntry(1, 1, "Song A", False, False, None, False, None)]
+    _setlist_with(conn, "s1", "2015-04-08", v1, two_songs, tour=Tour(name="Currents"))
+    _setlist_with(conn, "s2", "2016-06-01", v2, two_songs, tour=Tour(name="Currents"))
+    _setlist_with(conn, "s3", "2012-08-11", v1, one_song, tour=Tour(name="Lonerism"))
+
+    client = _client_with(conn)
+    response = client.get("/api/analysis/tours")
+
+    assert response.status_code == 200
+    body = response.json()
+    by_name = {t["name"]: t for t in body}
+    assert by_name["Currents"]["show_count"] == 2
+    assert by_name["Currents"]["venue_count"] == 2
+    assert by_name["Currents"]["country_count"] == 2
+    assert by_name["Currents"]["date_start"] == "2015-04-08"
+    assert by_name["Currents"]["date_end"] == "2016-06-01"
+    assert by_name["Currents"]["avg_songs"] == 2.0
+    assert by_name["Lonerism"]["show_count"] == 1
+    # oldest tour first
+    assert body[0]["name"] == "Lonerism"
+
+
+def test_tours_excludes_tape_entries_from_average(tmp_conn):
+    conn = tmp_conn
+    venue = Venue(id="v1", name="Venue", city="City", state=None, country="Country A")
+    songs = [
+        SetlistSongEntry(1, 1, "Intro Tape", False, False, None, True, None),
+        SetlistSongEntry(2, 1, "Song A", False, False, None, False, None),
+    ]
+    _setlist_with(conn, "s1", "2020-01-01", venue, songs, tour=Tour(name="The Slow Rush"))
+
+    body = _client_with(conn).get("/api/analysis/tours").json()
+    assert body[0]["avg_songs"] == 1.0
+
+
+def test_covers_group_by_artist_with_their_songs(tmp_conn):
+    conn = tmp_conn
+    venue = Venue(id="v1", name="Venue", city="City", state=None, country="Country A")
+    songs = [
+        SetlistSongEntry(1, 1, "Remember Me", False, True, "Blue Boy", False, None),
+        SetlistSongEntry(2, 1, "Own Song", False, False, None, False, None),
+    ]
+    _setlist_with(conn, "s1", "2019-01-01", venue, songs)
+    _setlist_with(conn, "s2", "2020-01-01", venue, songs)
+
+    body = _client_with(conn).get("/api/analysis/covers").json()
+
+    assert len(body) == 1
+    entry = body[0]
+    assert entry["artist_name"] == "Blue Boy"
+    assert entry["play_count"] == 2
+    assert entry["song_count"] == 1
+    assert entry["first_played"] == "2019-01-01"
+    assert entry["last_played"] == "2020-01-01"
+    assert entry["songs"] == [{"song_name": "Remember Me", "play_count": 2}]
+
+
+def test_covers_is_empty_when_nothing_was_covered(tmp_conn):
+    conn = tmp_conn
+    venue = Venue(id="v1", name="Venue", city="City", state=None, country="Country A")
+    _setlist_with(
+        conn, "s1", "2020-01-01", venue,
+        [SetlistSongEntry(1, 1, "Song A", False, False, None, False, None)],
+    )
+    assert _client_with(conn).get("/api/analysis/covers").json() == []
+
+
+def test_encores_rank_songs_and_report_the_rate(tmp_conn):
+    conn = tmp_conn
+    venue = Venue(id="v1", name="Venue", city="City", state=None, country="Country A")
+    with_encore = [
+        SetlistSongEntry(1, 1, "Opener", False, False, None, False, None),
+        SetlistSongEntry(2, 2, "Closer", True, False, None, False, None),
+    ]
+    without = [SetlistSongEntry(1, 1, "Opener", False, False, None, False, None)]
+    _setlist_with(conn, "s1", "2020-01-01", venue, with_encore)
+    _setlist_with(conn, "s2", "2020-02-01", venue, with_encore)
+    _setlist_with(conn, "s3", "2020-03-01", venue, without)
+
+    body = _client_with(conn).get("/api/analysis/encores").json()
+
+    assert body["shows_with_encore"] == 2
+    assert body["shows_total"] == 3
+    assert body["encore_entries"] == 2
+    assert body["encore_rate"] == pytest.approx(2 / 3, abs=1e-4)
+    assert body["songs"][0] == {
+        "song_id": body["songs"][0]["song_id"],
+        "song_name": "Closer",
+        "encore_count": 2,
+    }
+
+
+def test_song_map_returns_stored_coordinates_and_play_counts(tmp_conn):
+    conn = tmp_conn
+    venue = Venue(id="v1", name="Venue", city="City", state=None, country="Country A")
+    _setlist_with(
+        conn, "s1", "2020-01-01", venue,
+        [SetlistSongEntry(1, 1, "Song A", False, False, None, False, None)],
+    )
+    _setlist_with(
+        conn, "s2", "2020-02-01", venue,
+        [SetlistSongEntry(1, 1, "Song A", False, False, None, False, None)],
+    )
+    song_id = db.get_song_id_by_name(conn, "Song A")
+    db.replace_song_clusters(conn, [(song_id, 1.5, -2.25, 3)])
+
+    body = _client_with(conn).get("/api/analysis/song-map").json()
+
+    assert len(body) == 1
+    assert body[0]["song_name"] == "Song A"
+    assert body[0]["x"] == 1.5
+    assert body[0]["y"] == -2.25
+    assert body[0]["cluster_id"] == 3
+    assert body[0]["play_count"] == 2
+
+
+def test_cities_aggregate_venues_in_the_same_city(tmp_conn):
+    conn = tmp_conn
+    v1 = Venue(id="v1", name="Room One", city="Paris", state=None, country="France")
+    v2 = Venue(id="v2", name="Room Two", city="Paris", state=None, country="France")
+    v3 = Venue(id="v3", name="Room Three", city="Berlin", state=None, country="Germany")
+    song = [SetlistSongEntry(1, 1, "Song A", False, False, None, False, None)]
+    _setlist_with(conn, "s1", "2020-01-01", v1, song)
+    _setlist_with(conn, "s2", "2021-01-01", v2, song)
+    _setlist_with(conn, "s3", "2022-01-01", v3, song)
+
+    body = _client_with(conn).get("/api/analysis/cities").json()
+
+    assert body[0]["city"] == "Paris"
+    assert body[0]["show_count"] == 2
+    assert body[0]["venue_count"] == 2
+    assert body[0]["last_visited"] == "2021-01-01"
+    assert body[1]["city"] == "Berlin"
+    assert body[1]["venue_count"] == 1

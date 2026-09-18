@@ -22,11 +22,14 @@ CREATE TABLE IF NOT EXISTS tours (
 );
 
 CREATE TABLE IF NOT EXISTS venues (
-    id       TEXT PRIMARY KEY,
-    name     TEXT NOT NULL,
-    city     TEXT,
-    state    TEXT,
-    country  TEXT
+    id        TEXT PRIMARY KEY,
+    name      TEXT NOT NULL,
+    city      TEXT,
+    state     TEXT,
+    country   TEXT,
+    capacity  INTEGER,
+    latitude  REAL,
+    longitude REAL
 );
 
 CREATE TABLE IF NOT EXISTS setlists (

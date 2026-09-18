@@ -7,7 +7,13 @@ import truststore
 from undercurrents.ingestion.setlistfm_client import RateLimiter
 
 BASE_URL = "https://www.wikidata.org/w"
-USER_AGENT = "Undercurrents/0.1 ( personal non-commercial research project )"
+# Wikimedia's user-agent policy asks for a contact the operator can reach, and their 403
+# body points at the same policy page. The public repository URL supplies that without
+# putting a personal address in an outbound header.
+USER_AGENT = (
+    "Undercurrents/0.1 (https://github.com/LenouvelLouis/Undercurrents; "
+    "personal non-commercial research project)"
+)
 RETRYABLE_STATUSES = {500, 502, 503, 504}
 
 

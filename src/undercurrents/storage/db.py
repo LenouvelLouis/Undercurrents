@@ -328,3 +328,70 @@ def replace_song_clusters(
         rows,
     )
     conn.commit()
+
+
+def ensure_derived_feature_tables(conn: sqlite3.Connection) -> None:
+    """Derived per-song and per-setlist feature tables.
+
+    Added through an `ensure_*` migration rather than `schema.sql` for the same reason as the
+    enrichment columns: the API opens the database without running `initialize_schema`, so a
+    table that only exists there would be missing at request time on an already-built
+    database. Every column is recomputable from the ingested rows, so dropping and rebuilding
+    these two tables is always safe."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS song_features (
+            song_id           INTEGER PRIMARY KEY REFERENCES songs(id),
+            play_count        INTEGER NOT NULL,
+            show_count        INTEGER NOT NULL,
+            first_played      TEXT,
+            last_played       TEXT,
+            longest_gap_days  INTEGER,
+            current_streak    INTEGER NOT NULL DEFAULT 0,
+            opener_count      INTEGER NOT NULL DEFAULT 0,
+            closer_count      INTEGER NOT NULL DEFAULT 0,
+            encore_count      INTEGER NOT NULL DEFAULT 0,
+            cover_count       INTEGER NOT NULL DEFAULT 0,
+            avg_position_pct  REAL,
+            dominant_era      TEXT,
+            computed_at       TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS setlist_features (
+            setlist_id          TEXT PRIMARY KEY REFERENCES setlists(id),
+            event_date          TEXT NOT NULL,
+            song_count          INTEGER NOT NULL,
+            encore_count        INTEGER NOT NULL DEFAULT 0,
+            cover_count         INTEGER NOT NULL DEFAULT 0,
+            tape_count          INTEGER NOT NULL DEFAULT 0,
+            opener_song_id      INTEGER REFERENCES songs(id),
+            closer_song_id      INTEGER REFERENCES songs(id),
+            known_duration_ms   INTEGER,
+            duration_complete   INTEGER NOT NULL DEFAULT 0,
+            novelty_rate        REAL,
+            days_since_previous INTEGER,
+            travel_km           REAL,
+            computed_at         TEXT NOT NULL
+        )
+        """
+    )
+    # `CREATE TABLE IF NOT EXISTS` is a no-op on a database built before travel_km existed,
+    # so the column is added separately for those.
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(setlist_features)")}
+    if "travel_km" not in existing:
+        conn.execute("ALTER TABLE setlist_features ADD COLUMN travel_km REAL")
+    conn.commit()
+
+
+def ensure_venues_coordinate_columns(conn: sqlite3.Connection) -> None:
+    """Latitude/longitude on venues, added by migration for the same reason as capacity: the
+    API opens the database without running `initialize_schema`."""
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(venues)")}
+    if "latitude" not in existing:
+        conn.execute("ALTER TABLE venues ADD COLUMN latitude REAL")
+    if "longitude" not in existing:
+        conn.execute("ALTER TABLE venues ADD COLUMN longitude REAL")
+    conn.commit()

@@ -7,7 +7,7 @@ import { cityCoordinates, loadCityData, type CityDataBundle } from "../../lib/ci
 import { api } from "../../lib/api";
 import PhotoPanel from "../../components/PhotoPanel";
 import { PHOTOS } from "../../lib/photos";
-import type { Venue } from "../../lib/types";
+import type { City, Venue } from "../../lib/types";
 
 interface CountryAgg {
   mapName: string;
@@ -37,9 +37,11 @@ export default function VenueMap() {
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [zoom, setZoom] = useState(DEFAULT_VIEW);
   const [cityData, setCityData] = useState<CityDataBundle | null>(null);
+  const [cities, setCities] = useState<City[]>([]);
 
   useEffect(() => {
     api.venues().then(setVenues).catch(() => {});
+    api.cities().then(setCities).catch(() => {});
   }, []);
 
   // The per-venue city coordinate table is fetched lazily (see cityGeo.ts) rather than
@@ -109,17 +111,17 @@ export default function VenueMap() {
   const activePoint = selected?.kind === "point" ? points.groups.find((p) => p.key === selected.key) : null;
   const cityResolved = points.cityMatched;
 
-  // Two real leaderboards carved out of the same venues list already on the page: most
-  // played (show_count) and biggest room (capacity), a field the map itself never surfaces.
+  // Two real leaderboards beside the map: the most played venues, carved out of the venue
+  // list already on the page, and the most played cities, which come from their own
+  // endpoint. Venue capacity used to fill the second panel, but that column is empty for
+  // every venue in the database, so the panel was permanently blank.
   const byShows = useMemo(() => venues.slice().sort((a, b) => b.show_count - a.show_count).slice(0, 8), [venues]);
+  const topCities = useMemo(() => cities.slice(0, 8), [cities]);
+  const maxCityShows = Math.max(...topCities.map((c) => c.show_count), 1);
+  const withCapacity = useMemo(() => venues.filter((v) => v.capacity != null), [venues]);
   const byCapacity = useMemo(
-    () =>
-      venues
-        .filter((v) => v.capacity != null)
-        .slice()
-        .sort((a, b) => (b.capacity ?? 0) - (a.capacity ?? 0))
-        .slice(0, 8),
-    [venues],
+    () => withCapacity.slice().sort((a, b) => (b.capacity ?? 0) - (a.capacity ?? 0)).slice(0, 8),
+    [withCapacity],
   );
   const maxCapacity = Math.max(...byCapacity.map((v) => v.capacity ?? 0), 1);
 
@@ -392,7 +394,7 @@ export default function VenueMap() {
         </Card>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-6">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="anim-fade-in-up" accent="ember">
           <div className="font-mono text-xs uppercase tracking-widest text-white/40">Most played venues</div>
           <div className="mt-4 space-y-3">
@@ -414,13 +416,46 @@ export default function VenueMap() {
         </Card>
 
         <Card className="anim-fade-in-up" accent="ember" style={{ animationDelay: "0.05s" }}>
-          <div className="font-mono text-xs uppercase tracking-widest text-white/40">Biggest rooms played</div>
+          <div className="flex items-baseline justify-between">
+            <div className="font-mono text-xs uppercase tracking-widest text-white/40">Most played cities</div>
+            <div className="font-mono text-[10px] text-white/30">{cities.length} cities</div>
+          </div>
+          <div className="mt-4 space-y-3">
+            {topCities.map((city, i) => (
+              <div key={`${city.city}-${city.country}`} className="anim-fade-in-up" style={{ animationDelay: `${i * 0.04}s` }}>
+                <div className="flex items-center justify-between gap-3 font-mono text-xs text-white/60">
+                  <span className="truncate font-display text-sm font-medium text-white">
+                    {city.city}
+                    {city.country ? <span className="ml-2 font-mono text-[10px] text-white/35">{city.country}</span> : null}
+                  </span>
+                  <span className="shrink-0">{city.show_count} shows</span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/5">
+                  <div
+                    className="anim-width-in h-full rounded-full bg-gradient-to-r from-ember-dark via-ember to-ember-light"
+                    style={{ width: `${Math.max(4, (city.show_count / maxCityShows) * 100)}%`, animationDelay: `${0.1 + i * 0.05}s` }}
+                  />
+                </div>
+                <div className="mt-1 font-mono text-[10px] text-white/30">
+                  {city.venue_count} venue{city.venue_count === 1 ? "" : "s"}
+                </div>
+              </div>
+            ))}
+            {topCities.length === 0 && <p className="font-mono text-xs text-white/30">Loading cities…</p>}
+          </div>
+        </Card>
+
+        <Card className="anim-fade-in-up" accent="ember" style={{ animationDelay: "0.1s" }}>
+          <div className="flex items-baseline justify-between">
+            <div className="font-mono text-xs uppercase tracking-widest text-white/40">Biggest rooms played</div>
+            <div className="font-mono text-[10px] text-white/30">{withCapacity.length} known</div>
+          </div>
           <div className="mt-4 space-y-3">
             {byCapacity.map((venue, i) => (
               <div key={venue.id} className="anim-fade-in-up" style={{ animationDelay: `${i * 0.04}s` }}>
-                <div className="flex items-center justify-between font-mono text-xs text-white/60">
+                <div className="flex items-center justify-between gap-3 font-mono text-xs text-white/60">
                   <span className="truncate font-display text-sm font-medium text-white">{venue.name}</span>
-                  <span className="shrink-0">{venue.capacity?.toLocaleString()} cap.</span>
+                  <span className="shrink-0">{venue.capacity?.toLocaleString()}</span>
                 </div>
                 <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/5">
                   <div
@@ -430,8 +465,15 @@ export default function VenueMap() {
                 </div>
               </div>
             ))}
-            {byCapacity.length === 0 && <p className="font-mono text-xs text-white/30">No capacity data reported for these venues.</p>}
+            {byCapacity.length === 0 && (
+              <p className="font-mono text-xs text-white/30">No capacity resolved for these venues yet.</p>
+            )}
           </div>
+          <p className="mt-4 font-mono text-[10px] leading-relaxed text-white/25">
+            Capacity comes from Wikidata and only resolves where a venue name maps to exactly
+            one entity in its own country, so this ranks the {withCapacity.length} rooms that
+            matched, not all {venues.length}.
+          </p>
         </Card>
       </div>
 

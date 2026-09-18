@@ -120,6 +120,103 @@ frozen models before restarting the API so predictions reflect it:
 uv run python -m undercurrents.prediction.cli train-models
 ```
 
+## Derived feature tables
+
+Two tables of per-song and per-show features, recomputed from the ingested rows:
+
+```bash
+uv run python -m undercurrents.derived.cli build
+```
+
+`song_features` records, for every song, how often it was played, when it was first and last
+heard, its longest absence, its current run of consecutive shows, and how often it opens or
+closes a set. `setlist_features` records, for every show, the song count, encores, covers,
+the opener and closer, the summed duration where every song's length is known, how much of
+the set was new compared with the previous night, and the distance travelled since it. Both
+are pure recomputations, so the command is safe to re-run at any time.
+
+## Venue enrichment
+
+Capacity, in batches, through Wikidata's SPARQL endpoint (the interface they document for
+bulk reads; the per-venue search API answers a full run with a 403 and is right to):
+
+```bash
+uv run python -c "from pathlib import Path; from undercurrents.clustering import venue_capacity_bulk; from undercurrents.storage import db; conn = db.get_connection(Path('data/undercurrents.db')); db.initialize_schema(conn); print(venue_capacity_bulk.enrich(conn))"
+```
+
+A name is accepted only when it resolves to exactly one capacity within the venue's own
+country, checked against both the Wikidata label and its aliases, so ambiguous names are
+left unset rather than guessed at.
+
+Coordinates, via Nominatim, one lookup per distinct city rather than per venue, serial and
+rate-limited to respect their usage policy:
+
+```bash
+uv run python -c "from pathlib import Path; from undercurrents.clustering import geocode; from undercurrents.storage import db; conn = db.get_connection(Path('data/undercurrents.db')); db.initialize_schema(conn); print(geocode.enrich(conn))"
+```
+
+Coordinates are city-level, which is what the distance figures need; run
+`undercurrents.derived.cli build` afterwards so the travel columns pick them up.
+
+## Model benchmarks
+
+Trains every experimental model, scores it against the simplest baseline that could do the
+same job, and writes the comparison to `data/models/benchmarks.json`:
+
+```bash
+uv run python -m undercurrents.benchmarks.cli run
+```
+
+The split is strictly chronological (the most recent shows are held out, never a random
+sample). Three experiments run: a GRU against a first-order Markov chain on next-song
+prediction, an MLP against the production logistic regression on song-appearance prediction,
+and item2vec embeddings learned from setlist co-occurrence. The web app reads the stored file
+at `/api/predictions/benchmarks` and shows each model beside its baseline, including the
+cases where the baseline wins.
+
+## The three sequence and rotation predictions
+
+Three predictions live outside the original five and are served from
+`/api/predictions/running-order`, `/api/predictions/encore` and `/api/predictions/comeback`.
+All three are trained and backtested by the same command as the rest:
+
+```bash
+uv run python -m undercurrents.prediction.cli train-models --with-sequence
+```
+
+The flag is what separates the two speeds. Without it the command fits the five sklearn
+models in under a second, as before. With it, it also fits the GRU used for the running order
+and replays every held-out show for the three backtests, which takes a few minutes, and
+writes `running_order.joblib` plus one JSON of results per prediction into `data/models/`.
+Nothing here is ever trained inside a request. A backtest that cannot run for want of history
+is reported as skipped rather than failing the command.
+
+**Running order** (`prediction/running_order.py`) writes the set out first song to last
+rather than ranking the catalogue. It reuses the GRU from the benchmark module and decodes
+greedily, masking songs already played that night. The backtest sweeps the length of the seed
+it is given, because the model is weak inventing a whole night from nothing (0.32 of the set,
+worse than a static most-played list at 0.45) and much stronger continuing one that has
+already started (0.89 given a single real opening song). Reporting only one end of that range
+would misdescribe the page, so the sweep also carries a `production` run scored exactly the
+way the page runs: seeded with the *previous* show's opening, with those seeded songs counted
+as guesses rather than given for free. That run is the headline figure, 0.84 of the set and
+0.34 in the exact slot, and it comes with the assumption it rests on measured alongside it,
+namely that consecutive shows open with the same song 93% of the time.
+
+**Encore** (`prediction/encore.py`) and **comeback** (`prediction/comeback.py`) each put
+several methods in competition: a trained logistic regression and two or three one-line
+heuristics. The method that ships is chosen on three non-overlapping validation folds, and the
+test window is scored once afterwards. Without that separation, picking the best method off
+the test numbers would turn the test set into a training set.
+
+`prediction/selection.py` holds the tie-break. Ranking by the fold mean alone is not enough
+when the gap between the top two is smaller than the scatter between folds, which is what
+happens on the comeback task, where the trained model leads the recency rule by 0.1 points
+across folds that vary by 10. So where a simpler method is not distinguishable from the leader,
+by a paired per-fold comparison against its own standard error, the simpler one ships. Both
+pages show every method's score on every fold and on the test window, including the cases where
+the trained model lost, and say which of the two rules decided the choice.
+
 ## Tests
 
 Run the full test suite:

@@ -134,6 +134,8 @@ def test_train_models_command_writes_artifacts_and_prints_summary(tmp_path, caps
     assert (models_dir / "metadata.json").exists()
 
     captured = capsys.readouterr()
-    assert "Trained and saved 5 models" in captured.out
+    assert "Trained and saved 7 models" in captured.out
+    # Without the flag the slow half must be announced as skipped rather than silently run.
+    assert "--with-sequence" in captured.out
     assert "Next show date backtest" in captured.out
     assert "Trained at" in captured.out

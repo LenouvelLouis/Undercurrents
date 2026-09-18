@@ -24,6 +24,14 @@ def main(argv=None) -> None:
     evaluate_parser.add_argument("--db-path", default=DEFAULT_DB_PATH)
 
     train_parser = subparsers.add_parser("train-models")
+    train_parser.add_argument(
+        "--with-sequence",
+        action="store_true",
+        help=(
+            "also fit the running-order GRU and run the encore, comeback and running-order "
+            "backtests (several minutes)"
+        ),
+    )
     train_parser.add_argument("--db-path", default=DEFAULT_DB_PATH)
     train_parser.add_argument("--models-dir", default="data/models")
 
@@ -99,6 +107,19 @@ def main(argv=None) -> None:
             f"(median {result['backtest']['median_absolute_error_days']:.1f} days)"
         )
         print(f"Trained at: {result['metadata']['trained_at']}")
+
+        if args.with_sequence:
+            print("Training the sequence model and running the held-out backtests. This takes")
+            print("a few minutes: the GRU is fitted twice and every held-out show is replayed.")
+            slow = store.train_slow(conn)
+            print(
+                f"Sequence model trained on {slow['trained_on_shows']} shows; "
+                f"backtests written: {', '.join(slow['backtests']) or 'none'}"
+            )
+            for key, reason in slow["skipped"].items():
+                print(f"Skipped the {key} backtest: {reason}")
+        else:
+            print("Skipped the sequence model and backtests. Add --with-sequence for those.")
 
     conn.close()
 

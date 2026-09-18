@@ -4,17 +4,19 @@ import PhotoChip from "../../components/PhotoChip";
 import PhotoPanel from "../../components/PhotoPanel";
 import { api } from "../../lib/api";
 import { PHOTOS } from "../../lib/photos";
-import type { Overview, SetlistLength } from "../../lib/types";
+import type { Overview, SetlistDuration, SetlistLength } from "../../lib/types";
 
 const TICKS = [0, 5, 10, 15, 20, 25, 30, 35, 40];
 
 export default function ConcertLength() {
   const [length, setLength] = useState<SetlistLength | null>(null);
   const [overview, setOverview] = useState<Overview | null>(null);
+  const [duration, setDuration] = useState<SetlistDuration | null>(null);
 
   useEffect(() => {
     api.setlistLength().then(setLength).catch(() => {});
     api.overview().then(setOverview).catch(() => {});
+    api.setlistDuration().then(setDuration).catch(() => {});
   }, []);
 
   const predicted = length?.predicted_songs ?? null;
@@ -137,6 +139,63 @@ export default function ConcertLength() {
           </div>
           <div className="font-mono text-[10px] text-white/30">over {overview?.concerts_logged ?? "?"} concerts</div>
         </Card>
+
+        {/* Runtime in minutes. Shown next to the measured history rather than alone, because
+            the minutes figure is a product of two real numbers, not a trained prediction. */}
+        {duration && (
+          <>
+            <Card tinted className="anim-fade-in-up relative col-span-6 flex flex-col items-center justify-center overflow-hidden py-12 text-center md:col-span-3 lg:col-span-2" style={{ animationDelay: "0.32s" }}>
+              <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-violet/20 blur-3xl" />
+              <span className="relative font-mono text-xs uppercase tracking-[0.3em] text-violet-light">Estimated runtime</span>
+              <span className="relative mt-4 font-display text-7xl font-bold leading-none">
+                {Math.round(duration.predicted_minutes)}
+                <span className="ml-2 font-mono text-2xl font-normal text-white/50">min</span>
+              </span>
+              <span className="relative mt-3 max-w-[16rem] font-mono text-[11px] leading-relaxed text-white/40">
+                {duration.predicted_songs} songs at {duration.mean_song_minutes} min average
+              </span>
+            </Card>
+
+            <Card className="anim-fade-in-up col-span-6 md:col-span-3 lg:col-span-4" style={{ animationDelay: "0.36s" }}>
+              <div className="font-mono text-sm uppercase tracking-widest text-white/40">
+                What the archive actually measured
+              </div>
+              <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">Mean runtime</div>
+                  <div className="mt-1 font-display text-3xl font-bold">
+                    {duration.measured_mean_minutes ?? "N/A"}
+                    <span className="ml-1 font-mono text-sm font-normal text-white/40">min</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">Median runtime</div>
+                  <div className="mt-1 font-display text-3xl font-bold">
+                    {duration.measured_median_minutes ?? "N/A"}
+                    <span className="ml-1 font-mono text-sm font-normal text-white/40">min</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">Shows timed</div>
+                  <div className="mt-1 font-display text-3xl font-bold">{duration.measured_shows}</div>
+                  <div className="font-mono text-[10px] text-white/30">of {duration.shows_total} logged</div>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">Duration known</div>
+                  <div className="mt-1 font-display text-3xl font-bold">
+                    {duration.duration_coverage != null ? `${Math.round(duration.duration_coverage * 100)}%` : "N/A"}
+                  </div>
+                  <div className="font-mono text-[10px] text-white/30">of performances</div>
+                </div>
+              </div>
+              <p className="mt-6 font-mono text-[11px] leading-relaxed text-white/30">
+                The runtime is an estimate, not a separate model: {duration.method}. Only shows
+                where every performed song has a known duration are counted in the measured
+                figures, which is why {duration.measured_shows} of {duration.shows_total} qualify.
+              </p>
+            </Card>
+          </>
+        )}
 
         {/* Closing band: one wide photograph the width of the whole page. */}
         <PhotoPanel

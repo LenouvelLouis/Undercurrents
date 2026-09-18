@@ -300,3 +300,172 @@ def test_next_setlist_does_not_retrain_on_second_request(tmp_conn, monkeypatch):
     assert second.status_code == 200
     assert first.json() == second.json()
     assert len(calls) == 1
+
+
+def test_setlist_duration_estimates_minutes_from_real_durations(tmp_conn):
+    conn = tmp_conn
+    _seed(conn)
+    db.ensure_songs_enrichment_columns(conn)
+    # Two songs in the seed: give them known durations so the estimate has real input.
+    for name, ms in (("Song A", 4 * 60_000), ("Song B", 6 * 60_000)):
+        song_id = db.get_song_id_by_name(conn, name)
+        db.set_song_metadata(conn, song_id, None, ms, None)
+
+    response = _client_with(conn).get("/api/predictions/setlist-duration")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["predicted_minutes"] > 0
+    assert body["predicted_songs"] > 0
+    # mean of the expected songs' real durations, so it sits between the two
+    assert 4.0 <= body["mean_song_minutes"] <= 6.0
+    assert body["duration_coverage"] == 1.0
+    assert body["measured_shows"] == body["shows_total"]
+    assert body["method"]
+
+
+def test_setlist_duration_503_without_any_stored_duration(tmp_conn):
+    conn = tmp_conn
+    _seed(conn)
+    db.ensure_songs_enrichment_columns(conn)
+
+    response = _client_with(conn).get("/api/predictions/setlist-duration")
+
+    assert response.status_code == 503
+
+
+def test_setlist_duration_measures_only_fully_known_shows(tmp_conn):
+    conn = tmp_conn
+    _seed(conn)
+    db.ensure_songs_enrichment_columns(conn)
+    # Only one of the two songs gets a duration, so every show containing the other one
+    # is excluded from the measured figures rather than counted as a short show.
+    song_a = db.get_song_id_by_name(conn, "Song A")
+    db.set_song_metadata(conn, song_a, None, 5 * 60_000, None)
+
+    body = _client_with(conn).get("/api/predictions/setlist-duration").json()
+
+    assert body["measured_shows"] < body["shows_total"]
+    assert body["duration_coverage"] < 1.0
+
+
+# --------------------------------------------------------------------- encore and comeback
+
+
+def _seed_with_encores(conn, n=20):
+    """A history where two songs alternate in the encore, so the endpoints have something
+    real to rank rather than a single degenerate candidate."""
+    db.ensure_songs_clustering_columns(conn)
+    artist = Artist(id="a1", name="Tame Impala", mbid="a1")
+    venue = Venue(id="v1", name="Venue", city="City", state=None, country="Country A")
+    start = date(2020, 1, 1)
+    for i in range(n):
+        songs = [
+            SetlistSongEntry(1, 1, "Opener", False, False, None, False, None),
+            SetlistSongEntry(2, 1, "Middle", False, False, None, False, None),
+        ]
+        if i % 3 != 0:
+            songs.append(SetlistSongEntry(3, 1, "Rotating", False, False, None, False, None))
+        songs.append(
+            SetlistSongEntry(len(songs) + 1, 1, "Closer A" if i % 2 else "Closer B", True, False, None, False, None)
+        )
+        db.save_setlist(
+            conn,
+            NormalizedSetlist(
+                id=f"e{i}",
+                event_date=(start + timedelta(days=i * 7)).isoformat(),
+                last_updated_source="x",
+                url=f"https://x/e{i}",
+                artist=artist,
+                venue=venue,
+                tour=None,
+                songs=songs,
+            ),
+        )
+
+
+def test_encore_endpoint_ranks_candidates_and_names_its_method(tmp_conn, monkeypatch):
+    _seed_with_encores(tmp_conn)
+    # The real backtest needs hundreds of shows. The endpoint's contract is that it serves a
+    # stored result and does not recompute one per request, so a stored result is what it gets.
+    monkeypatch.setattr(
+        predictions_module.store,
+        "get_backtest",
+        lambda key, conn: {"chosen_method": "recent", "precision": 0.9},
+    )
+    response = _client_with(tmp_conn).get("/api/predictions/encore?top_n=3")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["method"] == "recent"
+    assert body["method_name"]
+    assert len(body["candidates"]) == 3
+    assert all("song_name" in candidate for candidate in body["candidates"])
+    # Ranked, not arbitrary: the recency method orders by recent encore rate.
+    rates = [candidate["recent_encore_rate"] for candidate in body["candidates"]]
+    assert rates == sorted(rates, reverse=True)
+    assert body["accuracy"]["precision"] == 0.9
+
+
+def test_comeback_endpoint_excludes_songs_played_at_the_last_show(tmp_conn, monkeypatch):
+    _seed_with_encores(tmp_conn)
+    monkeypatch.setattr(
+        predictions_module.store,
+        "get_backtest",
+        lambda key, conn: {"chosen_method": "recent", "precision": 0.7},
+    )
+    response = _client_with(tmp_conn).get("/api/predictions/comeback?top_n=5")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["method"] == "recent"
+    names = {candidate["song_name"] for candidate in body["candidates"]}
+    # "Opener" is in every single show including the last one, so it can never be a comeback.
+    assert "Opener" not in names
+
+
+def test_running_order_endpoint_never_repeats_a_song(tmp_conn, monkeypatch):
+    _seed_with_encores(tmp_conn)
+    monkeypatch.setattr(
+        predictions_module.store, "get_backtest", lambda key, conn: {"runs": [], "production": {}}
+    )
+    response = _client_with(tmp_conn).get("/api/predictions/running-order?length=4")
+
+    assert response.status_code == 200
+    body = response.json()
+    placed = [entry["song_id"] for entry in body["seed"]] + [
+        entry["song_id"] for entry in body["order"]
+    ]
+    assert len(placed) == len(set(placed)), "no song may appear twice in one night"
+    assert body["length"] == 4
+    assert body["length_source"] == "given"
+    positions = [entry["position"] for entry in body["seed"] + body["order"]]
+    assert positions == list(range(1, len(positions) + 1)), "positions must be contiguous"
+
+
+def test_running_order_accepts_an_explicit_seed(tmp_conn, monkeypatch):
+    _seed_with_encores(tmp_conn)
+    monkeypatch.setattr(
+        predictions_module.store, "get_backtest", lambda key, conn: {"runs": [], "production": {}}
+    )
+    client = _client_with(tmp_conn)
+    middle = db.get_song_id_by_name(tmp_conn, "Middle")
+
+    body = client.get(f"/api/predictions/running-order?length=4&seed_songs={middle}").json()
+    assert [entry["song_id"] for entry in body["seed"]] == [middle]
+    assert body["seed_source"] == "the songs you gave"
+    assert middle not in [entry["song_id"] for entry in body["order"]]
+
+
+def test_running_order_ignores_a_seed_song_the_model_never_saw(tmp_conn, monkeypatch):
+    _seed_with_encores(tmp_conn)
+    monkeypatch.setattr(
+        predictions_module.store, "get_backtest", lambda key, conn: {"runs": [], "production": {}}
+    )
+    # 999999 is not in the vocabulary. Dropping it silently is right: the alternative is a
+    # decode that crashes on an index the model has no embedding for.
+    body = _client_with(tmp_conn).get(
+        "/api/predictions/running-order?length=3&seed_songs=999999"
+    ).json()
+    assert body["seed"] == []
+    assert len(body["order"]) == 3

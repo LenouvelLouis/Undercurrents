@@ -5,12 +5,15 @@ from pathlib import Path
 import joblib
 
 from undercurrents.prediction import (
+    comeback,
+    encore,
     evaluate,
     features,
     model,
     next_show_date,
     next_show_location,
     position,
+    running_order,
     setlist_length,
 )
 
@@ -30,6 +33,16 @@ _PREDICTOR_MODULES = {
     "position_category": (position, position),
     "next_show_date": (next_show_date, next_show_date),
     "next_show_country": (next_show_location, next_show_location),
+    "encore": (encore, encore),
+    "comeback": (comeback, comeback),
+}
+
+# Backtests that are far too slow to compute inside a request. Each is a (module, filename)
+# pair; the result is a plain dict cached as JSON next to the models.
+_BACKTESTS = {
+    "encore": (encore, "encore_backtest.json"),
+    "comeback": (comeback, "comeback_backtest.json"),
+    "running_order": (running_order, "running_order_backtest.json"),
 }
 
 
@@ -82,6 +95,50 @@ class FrozenModelStore:
     def get_next_show_country_model(self, conn):
         return self._get_or_train_model("next_show_country", conn)
 
+    def get_encore_model(self, conn):
+        return self._get_or_train_model("encore", conn)
+
+    def get_comeback_model(self, conn):
+        return self._get_or_train_model("comeback", conn)
+
+    def get_running_order_bundle(self, conn):
+        """The GRU takes around three minutes to fit, so it is never trained inside a
+        request: it is loaded from disk, and only trained here if the file is missing,
+        which happens once on a fresh checkout."""
+        key = "running_order"
+        if key in self._cache:
+            return self._cache[key]
+
+        path = self._model_path(key)
+        if path.exists():
+            bundle = joblib.load(path)
+        else:
+            bundle = running_order.train(running_order.build_training_sequences(conn))
+            self.models_dir.mkdir(parents=True, exist_ok=True)
+            joblib.dump(bundle, path)
+
+        self._cache[key] = bundle
+        return bundle
+
+    def get_backtest(self, key: str, conn) -> dict:
+        """Cached backtest results. Computing one means retraining on a held-out split, so
+        the JSON on disk is the normal source and recomputation is the fallback."""
+        cache_key = f"{key}_backtest"
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+
+        module, filename = _BACKTESTS[key]
+        path = self.models_dir / filename
+        if path.exists():
+            stats = json.loads(path.read_text())
+        else:
+            stats = module.backtest(conn)
+            self.models_dir.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(stats))
+
+        self._cache[cache_key] = stats
+        return stats
+
     def get_next_date_backtest_stats(self, conn, holdout_shows: int = 10) -> dict:
         key = "next_date_backtest"
         if key in self._cache:
@@ -121,3 +178,40 @@ class FrozenModelStore:
         (self.models_dir / "metadata.json").write_text(json.dumps(metadata))
 
         return {"models": list(_PREDICTOR_MODULES), "backtest": stats, "metadata": metadata}
+
+    def train_slow(self, conn) -> dict:
+        """The GRU and the three held-out backtests, kept apart from `train_all` on purpose.
+
+        Everything in `train_all` fits in well under a second and needs only a handful of
+        shows. This takes minutes, because it trains a sequence model twice over (once to
+        serve, once on a reduced history to score it honestly) and replays every held-out
+        show. Bundling the two would have made the ordinary retrain unusable, and would have
+        made it fail outright on a database too small to hold anything out, which is exactly
+        the situation a fresh install is in.
+
+        A backtest that cannot run for want of data is recorded as skipped rather than
+        raised: the models it would have scored are still worth having.
+        """
+        self.models_dir.mkdir(parents=True, exist_ok=True)
+
+        bundle = running_order.train(running_order.build_training_sequences(conn))
+        joblib.dump(bundle, self._model_path("running_order"))
+        self._cache["running_order"] = bundle
+
+        completed, skipped = [], {}
+        for key, (module, filename) in _BACKTESTS.items():
+            try:
+                result = module.backtest(conn)
+            except ValueError as error:
+                skipped[key] = str(error)
+                continue
+            (self.models_dir / filename).write_text(json.dumps(result))
+            self._cache[f"{key}_backtest"] = result
+            completed.append(key)
+
+        return {
+            "sequence_model": "running_order",
+            "trained_on_shows": bundle["trained_on_shows"],
+            "backtests": completed,
+            "skipped": skipped,
+        }
