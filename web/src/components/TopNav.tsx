@@ -3,6 +3,7 @@ import type { Accent } from "../lib/theme";
 interface TopNavProps {
   activeTab: "predictions" | "analysis";
   onTabChange: (tab: "predictions" | "analysis") => void;
+  onHome: () => void;
   shows: number;
   yearsStart: number;
   yearsEnd: number;
@@ -23,12 +24,17 @@ const textColor: Record<Accent, string> = {
   ember: "text-ember-light",
 };
 
-export default function TopNav({ activeTab, onTabChange, shows, yearsStart, yearsEnd }: TopNavProps) {
+export default function TopNav({ activeTab, onTabChange, onHome, shows, yearsStart, yearsEnd }: TopNavProps) {
   return (
     <header className="sticky top-0 z-20 border-b border-white/5 bg-ink/70 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-8 py-5">
-        <div className="flex items-center gap-3">
-          <svg width="26" height="26" viewBox="0 0 28 28">
+      <div className="mx-auto flex max-w-[112rem] items-center justify-between px-8 py-5">
+        <button
+          onClick={onHome}
+          className="group flex items-center gap-3"
+          aria-label="Back to menu"
+          title="Back to menu"
+        >
+          <svg width="26" height="26" viewBox="0 0 28 28" className="transition-transform group-hover:-translate-x-0.5">
             <defs>
               <linearGradient id="logo-grad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="28" y2="28">
                 <stop offset="0%" stopColor="#e2a6ff" />
@@ -44,10 +50,10 @@ export default function TopNav({ activeTab, onTabChange, shows, yearsStart, year
             })}
           </svg>
           <span className="font-hero text-lg tracking-tight">
-            <span className="font-extrabold text-white">UNDER</span>
-            <span className="font-semibold text-white/50">CURRENTS</span>
+            <span className="font-extrabold text-white transition-colors group-hover:text-violet-light">UNDER</span>
+            <span className="font-semibold text-white/50 transition-colors group-hover:text-white/70">CURRENTS</span>
           </span>
-        </div>
+        </button>
 
         <nav className="flex items-center gap-8">
           {TABS.map((tab) => {

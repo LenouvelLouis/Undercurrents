@@ -1,9 +1,10 @@
-import artistPhoto from "../assets/artist-photo.jpg";
 import coverCurrents from "../assets/cover-currents.jpg";
 import coverDeadbeat from "../assets/cover-deadbeat.jpg";
 import coverInnerspeaker from "../assets/cover-innerspeaker.jpg";
 import coverLonerism from "../assets/cover-lonerism.jpg";
 import coverSlowRush from "../assets/cover-slowrush.jpg";
+import PhotoPanel from "../components/PhotoPanel";
+import { PHOTOS } from "../lib/photos";
 import type { Overview } from "../lib/types";
 
 interface LandingProps {
@@ -33,16 +34,16 @@ export default function Landing({ overview, onExplore }: LandingProps) {
 
   return (
     <div className="pb-24">
-      {/* Full-bleed cinematic hero — photo as backdrop, copy overlaid bottom-left */}
+      {/* Full-bleed cinematic hero (photo as backdrop, copy overlaid bottom-left) */}
       <section className="relative h-[88vh] min-h-[620px] w-full overflow-hidden border-b border-white/10">
         <img
-          src={artistPhoto}
-          alt="Tame Impala"
-          className="absolute inset-0 h-full w-full object-cover object-top grayscale contrast-125"
+          src={PHOTOS.singerConfetti.src}
+          alt={PHOTOS.singerConfetti.alt}
+          className="absolute inset-0 h-full w-full scale-105 object-cover"
+          style={{ objectPosition: "center 45%" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink via-violet-dark/30 to-ember-dark/10 mix-blend-color" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/50 to-ink/10" />
-        <div className="absolute inset-0 bg-gradient-to-r from-ink/70 via-ink/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/55 to-ink/20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-ink/85 via-ink/25 to-transparent" />
         <div className="grain-overlay" />
 
         <div className="absolute right-8 top-8 text-right">
@@ -50,14 +51,14 @@ export default function Landing({ overview, onExplore }: LandingProps) {
         </div>
 
         <div className="absolute inset-x-0 bottom-0 px-8 pb-14 sm:px-12">
-          <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-[112rem]">
             <p className="font-mono text-xs tracking-[0.3em] text-violet-light">TAME IMPALA TOUR INTELLIGENCE</p>
             <h1 className="mt-4 font-hero text-6xl leading-[0.92] sm:text-8xl">
               <span className="block font-extrabold text-white">UNDER</span>
               <span className="block font-semibold text-white/50">CURRENTS</span>
             </h1>
             <p className="mt-6 max-w-lg text-lg text-white/70">
-              Eighteen years of real setlists, venues and tours, run through predictive models —
+              Eighteen years of real setlists, venues and tours, run through predictive models:
               probabilities and honest uncertainty, not a single guess.
             </p>
             <button
@@ -70,10 +71,10 @@ export default function Landing({ overview, onExplore }: LandingProps) {
         </div>
       </section>
 
-      {/* Editorial stat strip — full-width band, independent of the hero column */}
+      {/* Editorial stat strip (full-width band, independent of the hero column) */}
       {stats.length > 0 && (
         <section className="border-b border-white/10 bg-white/[0.02]">
-          <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-y divide-white/10 px-8 sm:grid-cols-3 sm:divide-y-0 lg:grid-cols-6">
+          <div className="mx-auto grid max-w-[112rem] grid-cols-2 divide-x divide-y divide-white/10 px-8 sm:grid-cols-3 sm:divide-y-0 lg:grid-cols-6">
             {stats.map((stat) => (
               <div key={stat.label} className="px-2 py-8 text-center sm:px-4">
                 <div className="font-display text-3xl font-bold text-white">{stat.value}</div>
@@ -84,13 +85,30 @@ export default function Landing({ overview, onExplore }: LandingProps) {
         </section>
       )}
 
-      {/* Discography shelf — staggered, leaning records rather than a flat filmstrip */}
-      <section className="mx-auto max-w-7xl px-8 pt-20">
+      {/* From the archive: the photographs the rest of the site is built around, shown
+          once at full size before the data pages start quoting them a frame at a time. */}
+      <section className="mx-auto max-w-[112rem] px-8 pt-20">
+        <div className="flex items-baseline justify-between border-b border-white/10 pb-4">
+          <p className="font-mono text-xs uppercase tracking-widest text-white/40">From the archive</p>
+          <p className="font-mono text-xs text-white/30">on the road</p>
+        </div>
+        <div className="mt-10 grid grid-cols-4 gap-6">
+          <PhotoPanel photo={PHOTOS.silhouetteLasers} accent="violet" className="col-span-4 h-[22rem] lg:col-span-2" focus="center 50%" />
+          <PhotoPanel photo={PHOTOS.stageRainbowLights} accent="violet" className="col-span-2 h-[22rem] lg:col-span-1" focus="center 40%" style={{ animationDelay: "0.06s" }} />
+          <PhotoPanel photo={PHOTOS.arenaAerial} accent="violet" className="col-span-2 h-[22rem] lg:col-span-1" focus="center 35%" style={{ animationDelay: "0.12s" }} />
+          <PhotoPanel photo={PHOTOS.synthTable} accent="ember" className="col-span-2 h-[20rem] lg:col-span-1" focus="center 30%" style={{ animationDelay: "0.18s" }} />
+          <PhotoPanel photo={PHOTOS.backyardPortrait} accent="ember" className="col-span-2 h-[20rem] lg:col-span-1" focus="center 22%" style={{ animationDelay: "0.24s" }} />
+          <PhotoPanel photo={PHOTOS.guitaristConfetti} accent="ember" className="col-span-4 h-[20rem] lg:col-span-2" focus="center 40%" style={{ animationDelay: "0.3s" }} />
+        </div>
+      </section>
+
+      {/* Discography shelf (staggered, leaning records rather than a flat filmstrip) */}
+      <section className="mx-auto max-w-[112rem] px-8 pt-20">
         <div className="flex items-baseline justify-between border-b border-white/10 pb-4">
           <p className="font-mono text-xs uppercase tracking-widest text-white/40">
             The five eras this model was trained on
           </p>
-          <p className="font-mono text-xs text-white/30">01 — 05</p>
+          <p className="font-mono text-xs text-white/30">01–05</p>
         </div>
         <div className="mt-12 flex flex-wrap items-end justify-center gap-x-8 gap-y-12 sm:justify-between">
           {DISCOGRAPHY.map((album, i) => (

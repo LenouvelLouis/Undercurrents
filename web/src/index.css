@@ -12,13 +12,8 @@ body {
 }
 
 ::selection {
-  /* Literal values, not theme("colors.violet.DEFAULT") -- Tailwind's in-CSS theme()
-     function can't resolve a custom DEFAULT/light/dark added under a color name that
-     collides with one of Tailwind's own built-in 50-950 palettes (violet is a stock
-     Tailwind color); the same extended color resolves fine as a class (bg-violet,
-     border-violet/40, ...) since utility generation uses a different resolution path. */
-  background-color: #a531d6;
-  color: #08040c;
+  background-color: theme("colors.violet.DEFAULT");
+  color: theme("colors.ink");
 }
 
 /* Thin, accent-tinted scrollbar so long tables/lists match the rest of the UI */
@@ -39,7 +34,7 @@ body {
   background-color: rgba(165, 49, 214, 0.55);
 }
 
-/* Static film-grain overlay — layered on top of photos and glows for a printed,
+/* Static film-grain overlay, layered on top of photos and glows for a printed,
    analog-sleeve texture instead of flat digital gradients. */
 .grain-overlay {
   position: absolute;
@@ -48,5 +43,118 @@ body {
   mix-blend-mode: overlay;
   opacity: 0.35;
   pointer-events: none;
+}
+
+/* Setlist Trend chart: the line/area/points draw themselves in on mount instead
+   of appearing static, so the chart visibly "plays" the years passing. */
+@keyframes trend-draw-line {
+  from {
+    stroke-dashoffset: 2000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes trend-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes trend-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.trend-line-draw {
+  stroke-dasharray: 2000;
+  animation: trend-draw-line 1.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.trend-area-fade {
+  animation: trend-fade-in 1.2s ease-out 0.7s both;
+}
+.trend-dot-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: trend-pop-in 0.45s ease-out both;
+}
+.trend-era-fade {
+  animation: trend-fade-in 0.9s ease-out both;
+}
+.trend-cover-fade {
+  animation: trend-fade-in 1.6s ease-out both;
+}
+
+/* Generic entrance animations reused across every chart/page so switching tabs always
+   feels like the content is settling into place rather than popping in statically. */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes draw-in {
+  from {
+    stroke-dashoffset: 2000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes width-in {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.anim-fade-in-up {
+  animation: fade-in-up 0.6s ease-out both;
+}
+.anim-pop-in {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pop-in 0.45s ease-out both;
+}
+.anim-draw-in {
+  stroke-dasharray: 2000;
+  animation: draw-in 1.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.anim-width-in {
+  transform-origin: left;
+  animation: width-in 0.9s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+.anim-photo-chip {
+  animation: fade-in-up 0.8s ease-out both;
+}
+/* Same width-in keyframes as .anim-width-in, but scoped to each SVG shape's own
+   bounding box (fill-box) rather than the whole SVG viewport, so horizontal bars in
+   charts like the Cluster Explorer timeline grow from their own left edge in place. */
+.anim-bar-in {
+  transform-box: fill-box;
+  transform-origin: left;
+  animation: width-in 0.7s cubic-bezier(0.25, 1, 0.5, 1) both;
 }
 

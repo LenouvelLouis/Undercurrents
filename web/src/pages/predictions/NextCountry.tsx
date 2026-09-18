@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import Card from "../../components/Card";
+import PhotoChip from "../../components/PhotoChip";
+import PhotoPanel from "../../components/PhotoPanel";
 import ProgressBar from "../../components/ProgressBar";
 import { api } from "../../lib/api";
+import { PHOTOS } from "../../lib/photos";
 import type { CountryPrediction } from "../../lib/types";
 
 export default function NextCountry() {
@@ -18,20 +21,23 @@ export default function NextCountry() {
   return (
     <div>
       <div className="flex items-start justify-between">
-        <h1 className="font-display text-5xl font-bold">
-          Next
-          <br />
-          Country
-        </h1>
+        <div className="flex items-center gap-4">
+          <PhotoChip src={PHOTOS.singerConfetti.src} alt={PHOTOS.singerConfetti.alt} size={56} accent="violet" />
+          <h1 className="font-display text-6xl font-bold">
+            Next
+            <br />
+            Country
+          </h1>
+        </div>
         <p className="text-right font-mono text-xs italic text-white/40">
           Ranked probability across {predictions.length} countries played
         </p>
       </div>
-      <div className="mt-8 grid grid-cols-2 gap-6">
-        <Card className="space-y-4">
-          {predictions.slice(0, 8).map((prediction) => (
-            <div key={prediction.country}>
-              <div className="flex justify-between font-mono text-xs text-white/60">
+      <div className="mt-10 grid grid-cols-2 gap-6">
+        <Card className="anim-fade-in-up max-h-[640px] space-y-5 overflow-y-auto pr-1">
+          {predictions.map((prediction, i) => (
+            <div key={prediction.country} className="anim-fade-in-up" style={{ animationDelay: `${i * 0.05}s` }}>
+              <div className="flex justify-between font-mono text-sm text-white/60">
                 <span>{prediction.country}</span>
                 <span>{Math.round(prediction.probability * 100)}%</span>
               </div>
@@ -40,8 +46,8 @@ export default function NextCountry() {
           ))}
         </Card>
 
-        <Card className="flex items-center justify-center">
-          <svg viewBox="0 0 440 440" width="400" height="400">
+        <Card className="anim-fade-in-up flex items-center justify-center" style={{ animationDelay: "0.1s" }}>
+          <svg viewBox="0 0 440 440" className="w-full max-w-[640px]">
             {[1, 2, 3].map((ring) => (
               <circle key={ring} cx={center} cy={center} r={(ring / 3) * 150} fill="none" stroke="rgba(255,255,255,0.06)" />
             ))}
@@ -59,7 +65,7 @@ export default function NextCountry() {
               const labelX = center + Math.cos(angle) * labelRadius;
               const labelY = center + Math.sin(angle) * labelRadius;
               return (
-                <g key={prediction.country}>
+                <g key={prediction.country} className="anim-pop-in" style={{ animationDelay: `${0.2 + i * 0.1}s` }}>
                   <line x1={center} y1={center} x2={cx} y2={cy} stroke="#a531d6" strokeWidth={1} opacity={0.35} />
                   <circle cx={cx} cy={cy} r={r} fill={i === 0 ? "#e2a6ff" : "#a531d6"} opacity={i === 0 ? 1 : 0.75} />
                   <text
@@ -87,6 +93,23 @@ export default function NextCountry() {
             })}
           </svg>
         </Card>
+      </div>
+      <div className="mt-6 grid grid-cols-3 gap-6">
+        <PhotoPanel
+          photo={PHOTOS.singerConfetti}
+          accent="violet"
+          tag="wherever it lands next"
+          className="col-span-3 h-[19rem] lg:col-span-2"
+          focus="center 45%"
+          style={{ animationDelay: "0.25s" }}
+        />
+        <PhotoPanel
+          photo={PHOTOS.roundStageOverhead}
+          accent="violet"
+          className="col-span-3 h-[19rem] lg:col-span-1"
+          focus="center 30%"
+          style={{ animationDelay: "0.32s" }}
+        />
       </div>
     </div>
   );

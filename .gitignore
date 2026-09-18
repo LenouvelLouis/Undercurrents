@@ -7,3 +7,4 @@ data/
 *.egg-info/
 .idea/
 /docs/superpowers/
+/Claude outputs/

@@ -6,7 +6,7 @@ export default function BackgroundGlow() {
     opacity: 0.2 + (i % 5) * 0.1,
   }));
 
-  // A field of concentric, warped lines echoing the Currents sleeve — kept faint and
+  // A field of concentric, warped lines echoing the Currents sleeve, kept faint and
   // pinned to one corner so it reads as texture, not as a competing illustration.
   const rings = Array.from({ length: 14 }, (_, i) => 40 + i * 26);
 

@@ -71,12 +71,13 @@ export default function App() {
           setActiveTab(tab);
           setSubTabIndex(0);
         }}
+        onHome={() => setShowLanding(true)}
         shows={overview?.concerts_logged ?? 0}
         yearsStart={overview?.years_start ?? 0}
         yearsEnd={overview?.years_end ?? 0}
       />
       <SubTabRow tabs={tabs} activeIndex={subTabIndex} onChange={setSubTabIndex} accent={accent} />
-      <main className="mx-auto max-w-7xl px-8 py-10">
+      <main className="mx-auto max-w-[112rem] px-8 py-10">
         {activeTab === "predictions" && subTabIndex === 0 && <NextSetlist />}
         {activeTab === "predictions" && subTabIndex === 1 && <ConcertLength />}
         {activeTab === "predictions" && subTabIndex === 2 && <SongRole />}
@@ -92,7 +93,7 @@ export default function App() {
         <StatBar
           stats={[
             { label: "setlist accuracy", value: `${Math.round((overview.setlist_accuracy ?? 0) * 100)}%` },
-            { label: "length MAE", value: `${overview.length_mae_songs ?? "—"} songs` },
+            { label: "length MAE", value: `${overview.length_mae_songs ?? "N/A"} songs` },
             {
               label: "",
               value: `${overview.concerts_logged} concerts · ${overview.venues_mapped} venues · ${overview.countries} countries`,

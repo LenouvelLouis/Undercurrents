@@ -27,7 +27,7 @@ const activeDot: Record<Accent, string> = {
 export default function SubTabRow({ tabs, activeIndex, onChange, accent }: SubTabRowProps) {
   return (
     <div className="border-b border-white/5">
-      <div className="mx-auto flex max-w-7xl flex-wrap gap-x-10 gap-y-3 px-8 py-5">
+      <div className="mx-auto flex max-w-[112rem] flex-wrap gap-x-10 gap-y-3 px-8 py-5">
         {tabs.map((tab, i) => {
           const active = i === activeIndex;
           return (
