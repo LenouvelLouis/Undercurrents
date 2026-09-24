@@ -57,7 +57,7 @@ export default function PhotoStrip({ images, accent = "violet", className = "" }
             />
             <div className="grain-overlay" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-2 pb-1.5 pt-5 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-              <span className="line-clamp-2 font-mono text-[8px] uppercase leading-tight tracking-wide text-white/90">{img.alt}</span>
+              <span className="text-[11px] line-clamp-2 leading-tight text-white/90">{img.alt}</span>
             </div>
           </div>
         ))}
@@ -83,7 +83,7 @@ function PhotoRail({ side, images, accent }: { side: "left" | "right"; images: P
   const spineSide: CSSProperties = side === "left" ? { right: -20 } : { left: -20 };
   return (
     <div className="fixed top-36 z-0 hidden max-h-[68vh] w-52 flex-col min-[2300px]:flex" style={offset}>
-      <div className={`mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-white/30 ${side === "right" ? "flex-row-reverse text-right" : ""}`}>
+      <div className={`text-[13px] font-medium mb-3 flex items-center gap-2 text-white/45 ${side ==="right" ? "flex-row-reverse text-right" : ""}`}>
         <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accentHex[accent] }} />
         from the archive
       </div>
@@ -109,7 +109,7 @@ function PhotoRail({ side, images, accent }: { side: "left" | "right"; images: P
             />
             <div className="grain-overlay" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-2.5 pb-2 pt-6 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-hover:rotate-0">
-              <span className="line-clamp-2 font-mono text-[9px] uppercase leading-tight tracking-wide text-white/90">{img.alt}</span>
+              <span className="text-[11px] line-clamp-2 leading-tight text-white/90">{img.alt}</span>
             </div>
           </div>
         ))}

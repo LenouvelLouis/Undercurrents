@@ -37,7 +37,7 @@ function MetricPair({
   ];
   return (
     <div>
-      <div className="font-mono text-[11px] uppercase tracking-widest text-white/40">{label}</div>
+      <div className="text-[13px] font-medium text-white/55">{label}</div>
       <div className="mt-3 space-y-2">
         {rows.map((row, i) => (
           <div key={row.name} className="flex items-center gap-3">
@@ -70,7 +70,7 @@ function Verdict({ winner, note }: { winner: string; note: string }) {
         modelWon ? "border-ember/40 bg-ember/10" : "border-violet/40 bg-violet/10"
       }`}
     >
-      <div className="font-mono text-[10px] uppercase tracking-widest text-white/45">Verdict</div>
+      <div className="text-[13px] font-medium text-white/45">Verdict</div>
       <div className="mt-1 font-display text-sm font-medium text-white">{note}</div>
     </div>
   );
@@ -139,10 +139,10 @@ function Scoreboard({ bundle }: { bundle: BacktestBundle }) {
   return (
     <Card className="anim-fade-in-up mt-6" style={{ animationDelay: "0.2s" }}>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div className="font-mono text-sm uppercase tracking-widest text-white/40">
+        <div className="text-sm font-medium text-white/55">
           Sequence and rotation predictions
         </div>
-        <div className="font-mono text-[11px] italic text-white/35">
+        <div className="text-[13px] italic text-white/35">
           each scored on a held-out window, against the best method that needed no model
         </div>
       </div>
@@ -163,7 +163,7 @@ function Scoreboard({ bundle }: { bundle: BacktestBundle }) {
               </div>
               <div className="mt-2 space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="w-20 shrink-0 font-mono text-[9px] uppercase tracking-wider text-white/30">
+                  <span className="text-[11px] w-20 shrink-0 text-white/45">
                     shipped
                   </span>
                   <div className="h-2 grow overflow-hidden rounded-full bg-white/[0.06]">
@@ -174,7 +174,7 @@ function Scoreboard({ bundle }: { bundle: BacktestBundle }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-20 shrink-0 font-mono text-[9px] uppercase tracking-wider text-white/30">
+                  <span className="text-[11px] w-20 shrink-0 text-white/45">
                     baseline
                   </span>
                   <div className="h-2 grow overflow-hidden rounded-full bg-white/[0.06]">
@@ -212,7 +212,7 @@ export default function Models() {
   if (missing) {
     return (
       <div>
-        <h1 className="font-display text-6xl font-bold">Models</h1>
+        <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">Models</h1>
         <Card className="mt-10">
           <p className="font-mono text-sm text-white/50">
             No benchmark run found yet. Generate one with:
@@ -231,12 +231,12 @@ export default function Models() {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.silhouetteLasers.src} alt={PHOTOS.silhouetteLasers.alt} size={56} accent="ember" />
-          <h1 className="font-display text-6xl font-bold">Models</h1>
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">Models</h1>
         </div>
-        <p className="max-w-sm text-right font-mono text-xs italic text-white/40">
+        <p className="max-w-sm text-sm leading-relaxed text-white/50 sm:text-right">
           Every model against the simplest thing that could work
           {data && (
             <>
@@ -251,16 +251,16 @@ export default function Models() {
         <Card className="anim-fade-in-up mt-8">
           <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">Shows</div>
+              <div className="text-[13px] font-medium text-white/50">Shows</div>
               <div className="font-display text-2xl font-bold">{data.total_shows}</div>
             </div>
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">Held out</div>
+              <div className="text-[13px] font-medium text-white/50">Held out</div>
               <div className="font-display text-2xl font-bold">{data.holdout_shows}</div>
             </div>
             <div className="min-w-0 flex-1">
-              <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">Split</div>
-              <p className="mt-1 font-mono text-[11px] leading-relaxed text-white/45">{data.split_note}</p>
+              <div className="text-[13px] font-medium text-white/50">Split</div>
+              <p className="mt-1 text-[13px] leading-relaxed text-white/45">{data.split_note}</p>
             </div>
           </div>
         </Card>
@@ -269,7 +269,7 @@ export default function Models() {
       {sequence && (
         <Card className="anim-fade-in-up mt-6" style={{ animationDelay: "0.05s" }}>
           <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <div className="font-mono text-sm uppercase tracking-widest text-white/40">
+            <div className="text-sm font-medium text-white/55">
               Next song in the set
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -283,7 +283,7 @@ export default function Models() {
               </span>
             </div>
           </div>
-          <p className="mt-2 max-w-3xl font-mono text-[11px] leading-relaxed text-white/35">
+          <p className="mt-2 max-w-3xl text-[13px] leading-relaxed text-white/35">
             {sequence.task}. The baseline sees only the previous song; the network sees the whole
             night so far. Both are blocked from predicting a song already played tonight, so
             neither is rewarded for a constraint the other lacks.
@@ -327,7 +327,7 @@ export default function Models() {
       {tabular && tabular.baseline && tabular.model && (
         <Card className="anim-fade-in-up mt-6" style={{ animationDelay: "0.1s" }}>
           <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <div className="font-mono text-sm uppercase tracking-widest text-white/40">
+            <div className="text-sm font-medium text-white/55">
               Will this song be played
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -341,7 +341,7 @@ export default function Models() {
               </span>
             </div>
           </div>
-          <p className="mt-2 max-w-3xl font-mono text-[11px] leading-relaxed text-white/35">
+          <p className="mt-2 max-w-3xl text-[13px] leading-relaxed text-white/35">
             The task the app already serves, on the same ten hand-built features. Included
             precisely because the interesting outcome was that the extra capacity might buy
             nothing.
@@ -390,10 +390,10 @@ export default function Models() {
 
       {data?.item2vec && (
         <Card className="anim-fade-in-up mt-6" style={{ animationDelay: "0.15s" }}>
-          <div className="font-mono text-sm uppercase tracking-widest text-white/40">
+          <div className="text-sm font-medium text-white/55">
             Learned song embeddings
           </div>
-          <p className="mt-2 max-w-3xl font-mono text-[11px] leading-relaxed text-white/35">
+          <p className="mt-2 max-w-3xl text-[13px] leading-relaxed text-white/35">
             {data.item2vec.note} {data.item2vec.songs} songs in {data.item2vec.dimensions}
             {" "}dimensions. Click a song for its nearest neighbours by cosine similarity.
           </p>
@@ -420,7 +420,7 @@ export default function Models() {
                 if (!entry) return null;
                 return (
                   <>
-                    <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">
+                    <div className="text-[13px] font-medium text-white/50">
                       Closest to {entry.song_name}
                     </div>
                     <div className="mt-3 space-y-2">

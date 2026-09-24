@@ -389,3 +389,90 @@ export interface BacktestBundle {
   missing: string[];
   command: string;
 }
+
+export interface ShowFormat {
+  name: string;
+  shows: number;
+  songs: number;
+}
+
+export interface GuestAppearance {
+  guest: string;
+  song_name: string;
+  event_date: string;
+  city: string | null;
+  country: string | null;
+}
+
+export interface NoteFlag {
+  flag: string;
+  count: number;
+}
+
+export interface TeaseCount {
+  title: string;
+  count: number;
+}
+
+export interface NightNotes {
+  formats: ShowFormat[];
+  guests: GuestAppearance[];
+  flags: NoteFlag[];
+  teases: TeaseCount[];
+  notes_total: number;
+}
+
+export interface DebutContradiction {
+  song_name: string;
+  claimed_on: string;
+  earliest_in_archive: string | null;
+  days_earlier: number;
+}
+
+export interface DebutCheck {
+  claims: number;
+  confirmed: number;
+  contradicted: number;
+  contradictions: DebutContradiction[];
+}
+
+export interface AudioSong {
+  song_name: string;
+  bpm: number;
+  musical_key: string | null;
+  musical_scale: string | null;
+  loudness: number | null;
+  danceability: number | null;
+  play_count: number;
+}
+
+export interface AudioFeatures {
+  coverage: {
+    songs_with_audio: number;
+    songs_total: number;
+    song_coverage: number;
+    performances_covered: number;
+    performances_total: number;
+    performance_coverage: number;
+  };
+  songs: AudioSong[];
+  keys: { key: string; songs: number }[];
+  tempo_arc: { position: number; avg_bpm: number; samples: number }[];
+  source: string;
+}
+
+export interface WeatherSplit {
+  is_outdoor: number;
+  shows: number;
+  avg_rain_mm: number | null;
+  avg_temp_max_c: number | null;
+  avg_songs: number | null;
+}
+
+export interface WeatherReport {
+  shows_with_weather: number;
+  shows_total: number;
+  by_venue_kind: WeatherSplit[];
+  outdoor_wet_vs_dry: { condition: string; shows: number; avg_songs: number | null }[];
+  caveat: string;
+}

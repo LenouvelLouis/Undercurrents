@@ -26,7 +26,7 @@ function MonthCalendar({ iso, accent = "#a531d6" }: { iso: string; accent?: stri
 
   return (
     <div>
-      <div className="font-mono text-xs uppercase tracking-widest text-white/40">
+      <div className="text-[13px] font-medium text-white/55">
         {target.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
       </div>
       <div className="mt-4 grid grid-cols-7 gap-1.5">
@@ -75,18 +75,16 @@ export default function NextDate() {
 
   return (
     <div>
-      <div className="flex items-start justify-between">
-        <h1 className="font-display text-6xl font-bold">
-          Next
-          <br />
-          Date
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+        <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">
+          Next Date
         </h1>
-        <p className="text-right font-mono text-xs italic text-white/40">Predicted date of the next announced show</p>
+        <p className="text-sm leading-relaxed text-white/50 sm:text-right">Predicted date of the next announced show</p>
       </div>
       {data && (
         <div className="mt-10 grid grid-cols-6 gap-6">
           <Card tinted className="anim-fade-in-up col-span-6 lg:col-span-3">
-            <div className="font-display text-6xl font-bold">{formatDate(data.predicted_date)}</div>
+            <div className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">{formatDate(data.predicted_date)}</div>
             <div className="mt-2 font-mono text-sm text-white/50">
               predicted mean: {data.days_from_today} days out
             </div>
@@ -101,7 +99,7 @@ export default function NextDate() {
                 className="anim-width-in h-full rounded-full bg-gradient-to-r from-violet-dark via-violet to-violet-light"
                 style={{ width: `${markerPct}%`, animationDelay: "0.3s" }}
               />
-              <div className="absolute -top-7 left-0 font-mono text-xs uppercase tracking-widest text-white/40">Today</div>
+              <div className="text-[13px] font-medium absolute -top-7 left-0 text-white/55">Today</div>
               <div
                 className="absolute -top-9 flex -translate-x-1/2 flex-col items-center"
                 style={{ left: `${markerPct}%` }}
@@ -118,11 +116,11 @@ export default function NextDate() {
 
             <div className="mt-8 flex gap-10">
               <div>
-                <div className="font-mono text-xs uppercase tracking-widest text-white/40">Mean abs. error</div>
+                <div className="text-[13px] font-medium text-white/55">Mean abs. error</div>
                 <div className="font-display text-2xl font-bold">{data.mae_days} days</div>
               </div>
               <div>
-                <div className="font-mono text-xs uppercase tracking-widest text-white/40">Median abs. error</div>
+                <div className="text-[13px] font-medium text-white/55">Median abs. error</div>
                 <div className="font-display text-2xl font-bold">{data.median_absolute_error_days} days</div>
               </div>
             </div>

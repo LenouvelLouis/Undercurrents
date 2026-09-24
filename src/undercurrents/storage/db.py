@@ -62,12 +62,21 @@ def upsert_artist(conn: sqlite3.Connection, artist: Artist) -> None:
 def upsert_venue(conn: sqlite3.Connection, venue: Venue) -> None:
     conn.execute(
         """
-        INSERT INTO venues (id, name, city, state, country) VALUES (?, ?, ?, ?, ?)
+        INSERT INTO venues (id, name, city, state, country, latitude, longitude)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             name = excluded.name, city = excluded.city,
-            state = excluded.state, country = excluded.country
+            state = excluded.state, country = excluded.country,
+            -- COALESCE and not a plain assignment: the payload omits coordinates for one
+            -- show, and a geocoding run may have filled that gap. A re-ingest must not
+            -- undo it by writing NULL over a known point.
+            latitude = COALESCE(excluded.latitude, venues.latitude),
+            longitude = COALESCE(excluded.longitude, venues.longitude)
         """,
-        (venue.id, venue.name, venue.city, venue.state, venue.country),
+        (
+            venue.id, venue.name, venue.city, venue.state, venue.country,
+            venue.latitude, venue.longitude,
+        ),
     )
 
 
@@ -164,8 +173,8 @@ def save_setlist(conn: sqlite3.Connection, normalized: NormalizedSetlist) -> Non
                 """
                 INSERT INTO setlist_songs
                     (setlist_id, position, set_number, song_id, is_encore, is_cover,
-                     cover_artist_id, is_tape, info)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     cover_artist_id, is_tape, info, set_name, guest_name, guest_mbid)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     normalized.id,
@@ -177,6 +186,9 @@ def save_setlist(conn: sqlite3.Connection, normalized: NormalizedSetlist) -> Non
                     cover_artist_id,
                     int(entry.is_tape),
                     entry.info,
+                    entry.set_name,
+                    entry.guest_name,
+                    entry.guest_mbid,
                 ),
             )
         conn.commit()
@@ -383,6 +395,17 @@ def ensure_derived_feature_tables(conn: sqlite3.Connection) -> None:
     existing = {row["name"] for row in conn.execute("PRAGMA table_info(setlist_features)")}
     if "travel_km" not in existing:
         conn.execute("ALTER TABLE setlist_features ADD COLUMN travel_km REAL")
+    conn.commit()
+
+
+def ensure_setlist_songs_context_columns(conn: sqlite3.Connection) -> None:
+    """`set_name` and the guest fields, added by migration for databases ingested before the
+    normalizer read them. Both come free with every setlist.fm payload and were simply not
+    being extracted."""
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(setlist_songs)")}
+    for column, kind in (("set_name", "TEXT"), ("guest_name", "TEXT"), ("guest_mbid", "TEXT")):
+        if column not in existing:
+            conn.execute(f"ALTER TABLE setlist_songs ADD COLUMN {column} {kind}")
     conn.commit()
 
 

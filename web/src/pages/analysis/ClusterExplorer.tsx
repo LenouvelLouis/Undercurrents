@@ -112,16 +112,14 @@ export default function ClusterExplorer() {
 
   return (
     <div>
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.roundStageOverhead.src} alt={PHOTOS.roundStageOverhead.alt} size={56} accent="violet" />
-          <h1 className="font-display text-6xl font-bold">
-            Cluster
-            <br />
-            Explorer
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">
+            Cluster Explorer
           </h1>
         </div>
-        <p className="text-right font-mono text-xs italic text-white/40">
+        <p className="text-sm leading-relaxed text-white/50 sm:text-right">
           {clusters.length} setlist clusters across the timeline
           <br />
           bar span = active date range · width = concerts in cluster
@@ -134,7 +132,7 @@ export default function ClusterExplorer() {
               {eraEntries.map(([era, color]) => (
                 <div key={era} className="flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-white/40">{era}</span>
+                  <span className="text-[13px] font-medium text-white/55">{era}</span>
                 </div>
               ))}
             </div>
@@ -233,7 +231,7 @@ export default function ClusterExplorer() {
           <Card className="anim-fade-in-up col-span-5 lg:col-span-2" style={{ animationDelay: "0.1s" }}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="font-mono text-xs uppercase tracking-widest text-white/40">
+                <div className="text-[13px] font-medium text-white/55">
                   Cluster C{String(detail.cluster_id).padStart(2, "0")}
                 </div>
                 <div className="mt-1 font-display text-5xl font-bold">{detail.size}</div>
@@ -251,7 +249,7 @@ export default function ClusterExplorer() {
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ERA_COLORS[detail.dominant_period] ?? "#a531d6" }} />
               {detail.dominant_period} era · {formatShort(detail.date_start)} – {formatShort(detail.date_end)}
             </div>
-            <div className="mt-6 font-mono text-xs uppercase tracking-widest text-white/40">Typical songs</div>
+            <div className="text-[13px] font-medium mt-6 text-white/55">Typical songs</div>
             <div className="mt-3 flex flex-wrap gap-2">
               {detail.typical_songs.map((song, i) => (
                 <span
@@ -268,7 +266,7 @@ export default function ClusterExplorer() {
       </div>
 
       <Card className="anim-fade-in-up mt-6">
-        <div className="font-mono text-xs uppercase tracking-widest text-white/40">Clusters by dominant era</div>
+        <div className="text-[13px] font-medium text-white/55">Clusters by dominant era</div>
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {eraBreakdown.map((e, i) => (
             <div key={e.era} className="anim-fade-in-up" style={{ animationDelay: `${i * 0.06}s` }}>

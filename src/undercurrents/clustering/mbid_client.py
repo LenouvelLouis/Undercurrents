@@ -7,7 +7,14 @@ import truststore
 from undercurrents.ingestion.setlistfm_client import RateLimiter
 
 BASE_URL = "https://musicbrainz.org/ws/2"
-USER_AGENT = "Undercurrents/0.1 ( personal non-commercial research project )"
+# MusicBrainz asks for an application name, a version and a contact the operator can reach.
+# This string was missing the contact, which is the same defect that produced the 403s from
+# Wikidata and is a documented cause of throttling and 503s here. The public repository URL
+# satisfies it without putting a personal address in an outbound header.
+USER_AGENT = (
+    "Undercurrents/0.1 (https://github.com/LenouvelLouis/Undercurrents; "
+    "personal non-commercial research project)"
+)
 RETRYABLE_STATUSES = {503}
 
 

@@ -744,3 +744,234 @@ def get_cooccurrence_heatmap(conn=Depends(get_conn)):
             {"a_id": r["a_id"], "b_id": r["b_id"], "shows": r["shows"]} for r in rows
         ],
     }
+
+
+@router.get("/night-notes")
+def get_night_notes(conn=Depends(get_conn)):
+    """Everything the archive records about what actually happened on a given night, as
+    opposed to which songs were played: the shape of the show, who came on stage, and what
+    the contributors wrote in the margin.
+
+    All of it was already in the setlist.fm payloads and simply was not being read.
+    """
+    formats = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT set_name AS name,
+                   COUNT(DISTINCT setlist_id) AS shows,
+                   COUNT(*) AS songs
+            FROM setlist_songs
+            WHERE set_name IS NOT NULL
+            GROUP BY set_name
+            ORDER BY shows DESC, songs DESC
+            """
+        )
+    ]
+
+    guests = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT ss.guest_name AS guest,
+                   s.name AS song_name,
+                   sl.event_date,
+                   v.city,
+                   v.country
+            FROM setlist_songs ss
+            JOIN setlists sl ON sl.id = ss.setlist_id
+            JOIN songs s ON s.id = ss.song_id
+            LEFT JOIN venues v ON v.id = sl.venue_id
+            WHERE ss.guest_name IS NOT NULL
+            ORDER BY sl.event_date DESC
+            """
+        )
+    ]
+
+    try:
+        flag_rows = conn.execute(
+            """
+            SELECT is_debut, is_long_awaited_return, is_jam, is_snippet, is_reprise,
+                   is_instrumental, is_partial, is_solo, is_fan_request, is_dedication,
+                   is_tour_debut, is_intro_outro, is_guest_mentioned, teases
+            FROM performance_notes
+            """
+        ).fetchall()
+    except Exception:
+        # The notes table is built by a derived-features run; a database without it should
+        # still serve the format and guest sections rather than failing outright.
+        flag_rows = []
+
+    flag_names = [
+        "debut", "long_awaited_return", "jam", "snippet", "reprise", "instrumental",
+        "partial", "solo", "fan_request", "dedication", "tour_debut", "intro_outro",
+        "guest_mentioned",
+    ]
+    flags = [
+        {"flag": name, "count": sum(1 for r in flag_rows if r[f"is_{name}"])}
+        for name in flag_names
+    ]
+    flags.sort(key=lambda item: -item["count"])
+
+    import json as _json
+
+    tease_counts: dict[str, int] = {}
+    for row in flag_rows:
+        for title in _json.loads(row["teases"] or "[]"):
+            tease_counts[title] = tease_counts.get(title, 0) + 1
+    teases = [
+        {"title": title, "count": count}
+        for title, count in sorted(tease_counts.items(), key=lambda kv: -kv[1])
+    ][:12]
+
+    return {
+        "formats": formats,
+        "guests": guests,
+        "flags": flags,
+        "teases": teases,
+        "notes_total": len(flag_rows),
+    }
+
+
+@router.get("/night-notes/debut-check")
+def get_debut_check(conn=Depends(get_conn)):
+    """How many "live debut" notes the archive itself backs up.
+
+    A contributor's note is a claim; the performance history is evidence. Where they
+    disagree, neither is assumed right: the archive thins out before about 2010, so an early
+    contradiction may mean the note is correct and a show is missing. The point is that the
+    disagreement is visible.
+    """
+    from undercurrents.derived import notes
+
+    try:
+        result = notes.verify_debuts(conn)
+    except Exception:
+        raise HTTPException(status_code=404, detail="Performance notes have not been built yet")
+
+    names = {row["id"]: row["name"] for row in db.get_all_songs(conn)}
+    for contradiction in result["contradictions"]:
+        contradiction["song_name"] = names.get(contradiction["song_id"], "unknown")
+    return result
+
+
+@router.get("/audio")
+def get_audio(conn=Depends(get_conn)):
+    """Tempo, key and loudness per song, plus how much of the catalogue they cover.
+
+    Coverage is reported two ways on purpose. By song it looks thin, because the rare deep
+    cuts and the 2025 album are missing: AcousticBrainz stopped accepting analyses in 2022,
+    so nothing from Deadbeat will ever appear. By performance it is far higher, because what
+    is missing is mostly what is rarely played.
+    """
+    from undercurrents.clustering import audio_features
+
+    try:
+        coverage = audio_features.coverage(conn)
+    except Exception:
+        raise HTTPException(status_code=404, detail="Audio features have not been fetched yet")
+
+    songs = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT s.name AS song_name, s.bpm, s.musical_key, s.musical_scale,
+                   s.loudness, s.danceability, COUNT(ss.song_id) AS play_count
+            FROM songs s
+            JOIN setlist_songs ss ON ss.song_id = s.id AND ss.is_tape = 0
+            WHERE s.bpm IS NOT NULL
+            GROUP BY s.id
+            ORDER BY s.bpm
+            """
+        )
+    ]
+
+    keys: dict[str, int] = {}
+    for song in songs:
+        if song["musical_key"]:
+            label = f"{song['musical_key']} {song['musical_scale'] or ''}".strip()
+            keys[label] = keys.get(label, 0) + 1
+
+    # Average tempo by position in the set, over shows where every song is known. This is the
+    # shape of a night, and it only means anything where the whole running order has a tempo.
+    arc = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT ss.position, ROUND(AVG(s.bpm), 1) AS avg_bpm, COUNT(*) AS samples
+            FROM setlist_songs ss
+            JOIN songs s ON s.id = ss.song_id
+            WHERE s.bpm IS NOT NULL AND ss.is_tape = 0 AND ss.position <= 24
+            GROUP BY ss.position
+            HAVING samples >= 20
+            ORDER BY ss.position
+            """
+        )
+    ]
+
+    return {
+        "coverage": coverage,
+        "songs": songs,
+        "keys": [{"key": k, "songs": n} for k, n in sorted(keys.items(), key=lambda kv: -kv[1])],
+        "tempo_arc": arc,
+        "source": "AcousticBrainz, frozen upstream since 2022",
+    }
+
+
+@router.get("/weather")
+def get_weather(conn=Depends(get_conn)):
+    """Weather at each show, and the only comparison it can honestly support.
+
+    Coordinates are city-level and most shows are indoors, where the weather cannot plausibly
+    change a setlist. So the figures are split by whether the venue is outdoors, and the
+    indoor rows are there as a control rather than as a finding.
+    """
+    try:
+        rows = conn.execute(
+            """
+            SELECT v.is_outdoor,
+                   COUNT(*) AS shows,
+                   ROUND(AVG(w.precipitation_mm), 2) AS avg_rain_mm,
+                   ROUND(AVG(w.temp_max_c), 1) AS avg_temp_max_c,
+                   ROUND(AVG(f.song_count), 2) AS avg_songs
+            FROM show_weather w
+            JOIN setlists sl ON sl.id = w.setlist_id
+            JOIN venues v ON v.id = sl.venue_id
+            LEFT JOIN setlist_features f ON f.setlist_id = sl.id
+            WHERE v.is_outdoor IS NOT NULL
+            GROUP BY v.is_outdoor
+            """
+        ).fetchall()
+    except Exception:
+        raise HTTPException(status_code=404, detail="Weather has not been fetched yet")
+
+    covered = conn.execute("SELECT COUNT(*) FROM show_weather").fetchone()[0]
+    total = conn.execute("SELECT COUNT(*) FROM setlists").fetchone()[0]
+
+    wet_dry = [
+        dict(row)
+        for row in conn.execute(
+            """
+            SELECT CASE WHEN w.precipitation_mm >= 1.0 THEN 'wet' ELSE 'dry' END AS condition,
+                   COUNT(*) AS shows,
+                   ROUND(AVG(f.song_count), 2) AS avg_songs
+            FROM show_weather w
+            JOIN setlists sl ON sl.id = w.setlist_id
+            JOIN venues v ON v.id = sl.venue_id
+            JOIN setlist_features f ON f.setlist_id = sl.id
+            WHERE v.is_outdoor = 1
+            GROUP BY condition
+            """
+        )
+    ]
+
+    return {
+        "shows_with_weather": covered,
+        "shows_total": total,
+        "by_venue_kind": [dict(row) for row in rows],
+        "outdoor_wet_vs_dry": wet_dry,
+        "caveat": (
+            "City-level coordinates, and the outdoor split covers only the venues Wikidata "
+            "could type. Indoor rows are a control, not a finding."
+        ),
+    }

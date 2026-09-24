@@ -238,3 +238,63 @@ title disambiguation (MusicBrainz), and venue capacity where available (Wikidata
 No lyrics, audio, or copyrighted content is redistributed. All APIs' rate limits and terms of
 use are respected. For details on rate limiting and retry logic, see the `*_client.py` modules
 under `src/undercurrents/ingestion/` and `src/undercurrents/clustering/`.
+
+## Reading what the payloads already contained
+
+Three fields arrived with every setlist.fm response from the first ingest and were never
+extracted. `ingestion/backfill.py` walks the stored `raw_responses` and fills them in, with
+no network call at all:
+
+```bash
+uv run python -c "import sqlite3; from undercurrents.ingestion import backfill; \
+  c=sqlite3.connect('data/undercurrents.db'); c.row_factory=sqlite3.Row; print(backfill.backfill(c))"
+```
+
+**City coordinates**, present for 766 of 767 shows. These replace a Nominatim geocoding run
+that queried 236 cities at one request per second for something already on disk, and they
+cover more venues than it did. Nominatim now only matters for whatever the payloads omit.
+
+**Set names**, 1,217 song rows across 11 distinct segments once spelling is unified: Main
+Stage, B-Stage, Acoustic, and on two nights an album title, which marks a record played end
+to end. `normalize.canonical_set_name` unifies spelling only, never meaning.
+
+**Guest credits**, 12 appearances with MusicBrainz ids, from Wayne Coyne in 2013 to Dua Lipa
+and JENNIE in 2026.
+
+## Performance notes
+
+`derived/notes.py` sorts the 536 free-text notes on individual performances into flags:
+debut, long-awaited return, jam, snippet, reprise, instrumental, partial, solo, fan request,
+dedication. Each flag stores the phrase that triggered it, so a misclassification can be
+traced rather than taken on faith.
+
+`verify_debuts` is the part worth keeping. The notes claim a live debut 70 times; the
+function checks each claim against the performance history and reports 60 confirmed and 10
+contradicted. It earned its place immediately: the first version of the debut pattern also
+matched "first time played *since* 2015", which is the opposite claim, and the check caught
+17 returns being scored as debuts.
+
+## Audio features
+
+`clustering/audio_features.py` fetches tempo, key, mode, loudness and danceability from
+AcousticBrainz, which is free and needs no key.
+
+The lookup is two-stage on purpose. AcousticBrainz is indexed by MusicBrainz *recording*, and
+a song has many recordings; querying only the single stored mbid resolved 43 of 81 songs and
+missed Elephant, Let It Happen and The Less I Know the Better, three of the most played
+things in the catalogue, all of which are analysed under a different recording id. Searching
+every recording of a title raised performance coverage from 45% to 88%. The recording
+actually used is stored beside the numbers, because a tempo for one recording of Elephant is
+not the same claim as a tempo for Elephant.
+
+AcousticBrainz stopped accepting analyses in 2022, so the 2025 album will never appear there.
+That is why coverage is reported both by song (52%) and by performance (88%).
+
+## Weather and venue type
+
+`clustering/weather.py` pulls daily weather for every show from Open-Meteo's archive, and
+`clustering/venue_profile.py` adds venue type and opening year from Wikidata alongside the
+existing capacity query. The type resolves for 126 venues against capacity's 124, so it is
+not better covered as expected, but it carries the distinction that makes the weather usable
+at all: 41 of the typed venues are outdoors. On the outdoor shows measured so far, rain makes
+no difference to setlist length, and the sample is far too small to conclude otherwise.

@@ -45,12 +45,12 @@ export default function Anecdotes() {
 
   return (
     <div>
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.artistRedSeats.src} alt={PHOTOS.artistRedSeats.alt} size={56} accent="ember" />
-          <h1 className="font-display text-6xl font-bold">Anecdotes</h1>
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">Anecdotes</h1>
         </div>
-        <p className="text-right font-mono text-xs italic text-white/40">
+        <p className="text-sm leading-relaxed text-white/50 sm:text-right">
           Song debuts, disrupted shows, milestones
           <br />
           newest first
@@ -101,7 +101,7 @@ export default function Anecdotes() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="font-mono text-xs text-white/40">{formatDate(entry.date)}</div>
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest ${TAG_COLORS[entry.tag] ?? "border-white/30 text-white/60"}`}
+                    className={`text-[13px] font-medium inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 ${TAG_COLORS[entry.tag] ??"border-white/30 text-white/60"}`}
                   >
                     <span className={`h-1.5 w-1.5 rounded-full ${TAG_DOTS[entry.tag] ?? "bg-white/40"}`} />
                     {entry.tag}

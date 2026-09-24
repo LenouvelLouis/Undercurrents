@@ -70,16 +70,14 @@ export default function SongExplorer() {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.guitaristConfetti.src} alt={PHOTOS.guitaristConfetti.alt} size={56} accent="ember" />
-          <h1 className="font-display text-6xl font-bold">
-            Song
-            <br />
-            Explorer
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">
+            Song Explorer
           </h1>
         </div>
-        <p className="max-w-sm text-right font-mono text-xs italic text-white/40">
+        <p className="max-w-sm text-sm leading-relaxed text-white/50 sm:text-right">
           {songs.length} songs, each with its own history
           <br />
           recomputed from every performance on record
@@ -90,22 +88,22 @@ export default function SongExplorer() {
       {summary && summary.shows > 0 && (
         <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
           <Card className="anim-fade-in-up">
-            <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">Songs per show</div>
+            <div className="text-[13px] font-medium text-white/50">Songs per show</div>
             <div className="mt-1 font-display text-3xl font-bold">{summary.avg_songs ?? "N/A"}</div>
           </Card>
           <Card className="anim-fade-in-up" style={{ animationDelay: "0.04s" }}>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">Changes each night</div>
+            <div className="text-[13px] font-medium text-white/50">Changes each night</div>
             <div className="mt-1 font-display text-3xl font-bold">
               {summary.avg_novelty != null ? `${Math.round(summary.avg_novelty * 100)}%` : "N/A"}
             </div>
             <div className="font-mono text-[10px] text-white/30">of the set is new</div>
           </Card>
           <Card className="anim-fade-in-up" style={{ animationDelay: "0.08s" }}>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">Days between shows</div>
+            <div className="text-[13px] font-medium text-white/50">Days between shows</div>
             <div className="mt-1 font-display text-3xl font-bold">{summary.avg_gap_days ?? "N/A"}</div>
           </Card>
           <Card className="anim-fade-in-up" style={{ animationDelay: "0.12s" }}>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">Typical hop</div>
+            <div className="text-[13px] font-medium text-white/50">Typical hop</div>
             <div className="mt-1 font-display text-3xl font-bold">
               {summary.avg_travel_km != null ? `${summary.avg_travel_km.toLocaleString()}` : "N/A"}
               <span className="ml-1 font-mono text-sm font-normal text-white/40">km</span>
@@ -113,7 +111,7 @@ export default function SongExplorer() {
             <div className="font-mono text-[10px] text-white/30">{summary.legs_known ?? 0} legs measured</div>
           </Card>
           <Card className="anim-fade-in-up" style={{ animationDelay: "0.16s" }}>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">Total travelled</div>
+            <div className="text-[13px] font-medium text-white/50">Total travelled</div>
             <div className="mt-1 font-display text-3xl font-bold">
               {summary.total_travel_km != null
                 ? `${Math.round(summary.total_travel_km / 1000)}k`
@@ -128,7 +126,7 @@ export default function SongExplorer() {
       <div className="mt-6 grid grid-cols-5 gap-6">
         <Card className="anim-fade-in-up col-span-5 lg:col-span-3" accent="ember">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="font-mono text-sm uppercase tracking-widest text-white/40">Every song</div>
+            <div className="text-sm font-medium text-white/55">Every song</div>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -143,9 +141,9 @@ export default function SongExplorer() {
                 key={s.key}
                 type="button"
                 onClick={() => setSort(s.key)}
-                className={`rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-widest transition-colors ${
+                className={`text-[13px] font-medium rounded-full border px-3 py-1 transition-colors ${
                   sort === s.key
-                    ? "border-ember/60 bg-ember/15 text-white"
+                    ?"border-ember/60 bg-ember/15 text-white"
                     : "border-white/15 text-white/45 hover:border-white/35 hover:text-white/80"
                 }`}
               >
@@ -201,10 +199,10 @@ export default function SongExplorer() {
         <div className="col-span-5 space-y-6 lg:col-span-2">
           {novelty.length > 0 && (
             <Card className="anim-fade-in-up" accent="ember" style={{ animationDelay: "0.1s" }}>
-              <div className="font-mono text-sm uppercase tracking-widest text-white/40">
+              <div className="text-sm font-medium text-white/55">
                 How much the set changes
               </div>
-              <p className="mt-2 font-mono text-[11px] leading-relaxed text-white/35">
+              <p className="mt-2 text-[13px] leading-relaxed text-white/35">
                 Share of each night's songs that were not played the previous night, averaged
                 per year. A low bar is a locked-in tour; a high one is a band rotating songs.
               </p>

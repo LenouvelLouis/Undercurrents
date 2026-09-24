@@ -127,12 +127,12 @@ export default function Heatmaps() {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.roundStageAerial.src} alt={PHOTOS.roundStageAerial.alt} size={56} accent="ember" />
-          <h1 className="font-display text-6xl font-bold">Heatmaps</h1>
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">Heatmaps</h1>
         </div>
-        <p className="max-w-sm text-right font-mono text-xs italic text-white/40">
+        <p className="max-w-sm text-sm leading-relaxed text-white/50 sm:text-right">
           Four cross-tabs of the same 8,700 performances
           <br />
           colour is magnitude only, never category
@@ -145,9 +145,9 @@ export default function Heatmaps() {
             key={v.key}
             type="button"
             onClick={() => setView(v.key)}
-            className={`rounded-full border px-4 py-2 font-mono text-xs uppercase tracking-widest transition-colors ${
+            className={`text-[13px] font-medium rounded-full border px-4 py-2 transition-colors ${
               view === v.key
-                ? "border-ember/60 bg-ember/15 text-white"
+                ?"border-ember/60 bg-ember/15 text-white"
                 : "border-white/15 text-white/50 hover:border-white/35 hover:text-white/80"
             }`}
           >
@@ -159,10 +159,10 @@ export default function Heatmaps() {
       <Card className="anim-fade-in-up mt-6" accent="ember">
         {view === "years" && (
           <>
-            <div className="font-mono text-sm uppercase tracking-widest text-white/40">
+            <div className="text-sm font-medium text-white/55">
               Songs by year
             </div>
-            <p className="mt-2 max-w-2xl font-mono text-[11px] leading-relaxed text-white/35">
+            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-white/35">
               Rows are the 40 most-played songs, columns are years. A dark row that suddenly
               lights up is a song entering the rotation; one that goes dark has been dropped.
             </p>
@@ -188,10 +188,10 @@ export default function Heatmaps() {
 
         {view === "calendar" && (
           <>
-            <div className="font-mono text-sm uppercase tracking-widest text-white/40">
+            <div className="text-sm font-medium text-white/55">
               Touring calendar
             </div>
-            <p className="mt-2 max-w-2xl font-mono text-[11px] leading-relaxed text-white/35">
+            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-white/35">
               Concerts per month, every year in the archive. The empty stretches are as
               informative as the busy ones: a blank row is a year off the road.
             </p>
@@ -219,10 +219,10 @@ export default function Heatmaps() {
 
         {view === "positions" && (
           <>
-            <div className="font-mono text-sm uppercase tracking-widest text-white/40">
+            <div className="text-sm font-medium text-white/55">
               Where in the set
             </div>
-            <p className="mt-2 max-w-2xl font-mono text-[11px] leading-relaxed text-white/35">
+            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-white/35">
               Each show's running order is normalised into ten slots, so a 12-song night and a
               22-song night line up. Encores land in the closing slots by construction, which
               is why the right-hand column is where the set-closers cluster.
@@ -250,10 +250,10 @@ export default function Heatmaps() {
 
         {view === "cooccurrence" && (
           <>
-            <div className="font-mono text-sm uppercase tracking-widest text-white/40">
+            <div className="text-sm font-medium text-white/55">
               Played together
             </div>
-            <p className="mt-2 max-w-2xl font-mono text-[11px] leading-relaxed text-white/35">
+            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-white/35">
               How many shows contain both songs, for the 28 most-played. The diagonal is each
               song's own show count, so an off-diagonal cell can be read against it. This is
               the raw material the Song Map is built from, before any projection.

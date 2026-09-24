@@ -109,16 +109,14 @@ export default function SongMap() {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.synthTable.src} alt={PHOTOS.synthTable.alt} size={56} accent="ember" />
-          <h1 className="font-display text-6xl font-bold">
-            Song
-            <br />
-            Map
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">
+            Song Map
           </h1>
         </div>
-        <p className="text-right font-mono text-xs italic text-white/40">
+        <p className="text-sm leading-relaxed text-white/50 sm:text-right">
           {points.length} songs placed by how they co-occur in setlists
           <br />
           dot size = times played · colour = cluster
@@ -131,7 +129,7 @@ export default function SongMap() {
             {clusters.map((c) => (
               <span key={c.id} className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: colorFor(c.id) }} />
-                <span className="font-mono text-[10px] uppercase tracking-widest text-white/40">
+                <span className="text-[13px] font-medium text-white/55">
                   {c.id < 0 ? "ungrouped" : `group ${c.id}`} ({c.count})
                 </span>
               </span>
@@ -178,7 +176,7 @@ export default function SongMap() {
                 );
               })}
           </svg>
-          <p className="mt-3 font-mono text-[10px] leading-relaxed text-white/30">
+          <p className="mt-3 text-[13px] leading-relaxed text-white/30">
             Framed on the middle 96% of the coordinates so the dense centre stays readable.
             {outsideCount > 0
               ? ` ${outsideCount} song${outsideCount === 1 ? " sits" : "s sit"} outside that frame and ${outsideCount === 1 ? "is" : "are"} drawn hollow on the edge.`
@@ -189,14 +187,14 @@ export default function SongMap() {
         <Card className="anim-fade-in-up col-span-5 lg:col-span-2" style={{ animationDelay: "0.1s" }}>
           {active ? (
             <>
-              <div className="font-mono text-xs uppercase tracking-widest text-white/40">Selected song</div>
+              <div className="text-[13px] font-medium text-white/55">Selected song</div>
               <div className="mt-2 font-display text-2xl font-bold leading-tight">{active.song_name}</div>
               <div className="mt-3 flex items-center gap-2 font-mono text-xs text-white/50">
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: colorFor(active.cluster_id) }} />
                 {active.cluster_id < 0 ? "not grouped" : `group ${active.cluster_id}`} · played {active.play_count} times
               </div>
 
-              <div className="mt-6 font-mono text-xs uppercase tracking-widest text-white/40">
+              <div className="text-[13px] font-medium mt-6 text-white/55">
                 Closest on the map
               </div>
               <div className="mt-3 space-y-2">
@@ -213,7 +211,7 @@ export default function SongMap() {
                   </button>
                 ))}
               </div>
-              <p className="mt-4 font-mono text-[10px] leading-relaxed text-white/30">
+              <p className="mt-4 text-[13px] leading-relaxed text-white/30">
                 Closeness here is distance on the stored map, which the clustering step built
                 from songs appearing in the same setlists. It is not a claim about how the
                 songs sound.

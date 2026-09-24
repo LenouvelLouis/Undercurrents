@@ -65,12 +65,12 @@ export default function SongRole() {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.guitaristClose.src} alt={PHOTOS.guitaristClose.alt} size={56} accent="violet" />
-          <h1 className="font-display text-6xl font-bold">Song Role</h1>
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">Song Role</h1>
         </div>
-        <p className="max-w-xs text-right font-mono text-xs italic text-white/40">
+        <p className="max-w-xs text-sm leading-relaxed text-white/50 sm:text-right">
           Where in the set does a given song tend to land?
         </p>
       </div>
@@ -131,7 +131,7 @@ export default function SongRole() {
                           className="anim-pop-in rounded-full bg-gradient-to-br from-violet-light to-violet shadow-glow-violet"
                           style={{ width: size, height: size, animationDelay: `${0.1 + i * 0.1}s` }}
                         />
-                        <span className="mt-3 font-mono text-[10px] uppercase tracking-widest text-white/40">{label}</span>
+                        <span className="text-[13px] font-medium mt-3 text-white/55">{label}</span>
                       </div>
                     );
                   })}
@@ -155,7 +155,7 @@ export default function SongRole() {
 
         <Card className="anim-fade-in-up col-span-6 lg:col-span-3" style={{ animationDelay: "0.1s" }}>
           <div className="flex items-center justify-between">
-            <span className="font-mono text-xs uppercase tracking-widest text-white/40">Across the next predicted setlist</span>
+            <span className="text-[13px] font-medium text-white/55">Across the next predicted setlist</span>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               {STAGE_ORDER.map(({ key, label }) => (
                 <span key={key} className="flex items-center gap-1.5 font-mono text-[10px] text-white/40">

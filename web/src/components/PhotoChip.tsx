@@ -23,7 +23,7 @@ export default function PhotoChip({ src, alt, size = 44, accent = "violet", clas
       src={src}
       alt={alt}
       title={alt}
-      className={`anim-photo-chip shrink-0 rounded-xl object-cover shadow-lg shadow-black/40 ring-1 grayscale contrast-125 ${ringColor[accent]} ${className}`}
+      className={`melt-hover anim-photo-chip shrink-0 rounded-xl object-cover shadow-lg shadow-black/40 ring-1 grayscale contrast-125 ${ringColor[accent]} ${className}`}
       style={{ width: size, height: size, animationDelay: `${delay}s` }}
     />
   );

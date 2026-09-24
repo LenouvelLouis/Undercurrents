@@ -64,13 +64,11 @@ export default function SetlistTrend() {
 
   return (
     <div>
-      <div className="flex items-start justify-between">
-        <h1 className="font-display text-6xl font-bold">
-          Setlist
-          <br />
-          Trend
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+        <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">
+          Setlist Trend
         </h1>
-        <p className="text-right font-mono text-xs italic text-white/40">
+        <p className="text-sm leading-relaxed text-white/50 sm:text-right">
           Average songs per concert
           <br />
           {minYear} → {maxYear}
@@ -172,8 +170,8 @@ export default function SetlistTrend() {
       </Card>
 
       <Card className="anim-fade-in-up mt-6">
-        <div className="font-mono text-xs uppercase tracking-widest text-white/40">Average songs per era</div>
-        <div className="mt-6 flex items-end gap-6" style={{ height: 180 }}>
+        <div className="text-[13px] font-medium text-white/55">Average songs per era</div>
+        <div className="mt-6 flex items-end gap-3 overflow-x-auto sm:gap-6" style={{ height: 180 }}>
           {eraAverages.map((era, i) => {
             const heightPct = Math.max(6, ((era.avg ?? 0) / maxEraAvg) * 100);
             const cover = ERA_COVERS[era.name];
@@ -186,7 +184,7 @@ export default function SetlistTrend() {
                 />
                 <div className="flex items-center gap-1.5">
                   {cover && <img src={cover} alt="" className="h-4 w-4 rounded-sm object-cover grayscale" />}
-                  <span className="text-center font-mono text-[10px] uppercase tracking-widest text-white/40">{era.name}</span>
+                  <span className="text-[13px] font-medium text-center text-white/55">{era.name}</span>
                 </div>
               </div>
             );

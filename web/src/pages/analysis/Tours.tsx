@@ -57,12 +57,12 @@ export default function Tours() {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.arenaLasersWide.src} alt={PHOTOS.arenaLasersWide.alt} size={56} accent="ember" />
-          <h1 className="font-display text-6xl font-bold">Tours</h1>
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">Tours</h1>
         </div>
-        <p className="text-right font-mono text-xs italic text-white/40">
+        <p className="text-sm leading-relaxed text-white/50 sm:text-right">
           {totals.tours} named tours · {totals.shows} concerts assigned to one
           <br />
           bar width = concerts on that tour
@@ -71,7 +71,7 @@ export default function Tours() {
 
       <div className="mt-10 grid grid-cols-6 gap-6">
         <Card className="anim-fade-in-up col-span-6 lg:col-span-4">
-          <div className="font-mono text-sm uppercase tracking-widest text-white/40">
+          <div className="text-sm font-medium text-white/55">
             Every tour, oldest first
           </div>
           <div className="mt-6 space-y-4">
@@ -115,7 +115,7 @@ export default function Tours() {
 
         {selected && (
           <Card tinted accent="ember" className="anim-fade-in-up col-span-6 lg:col-span-2" style={{ animationDelay: "0.1s" }}>
-            <div className="font-mono text-xs uppercase tracking-widest text-white/50">Selected tour</div>
+            <div className="text-[13px] font-medium text-white/50">Selected tour</div>
             <div className="mt-2 font-display text-3xl font-bold leading-tight">{selected.name}</div>
             <div className="mt-1 font-mono text-xs text-white/50">
               {selected.year_start}
@@ -124,23 +124,23 @@ export default function Tours() {
 
             <div className="mt-6 grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-white/10 bg-ink/30 p-3">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-white/40">Concerts</div>
+                <div className="text-[13px] font-medium text-white/55">Concerts</div>
                 <div className="mt-1 font-display text-3xl font-bold">{selected.show_count}</div>
               </div>
               <div className="rounded-xl border border-white/10 bg-ink/30 p-3">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-white/40">Venues</div>
+                <div className="text-[13px] font-medium text-white/55">Venues</div>
                 <div className="mt-1 font-display text-3xl font-bold">{selected.venue_count}</div>
               </div>
               <div className="rounded-xl border border-white/10 bg-ink/30 p-3">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-white/40">Countries</div>
+                <div className="text-[13px] font-medium text-white/55">Countries</div>
                 <div className="mt-1 font-display text-3xl font-bold">{selected.country_count}</div>
               </div>
               <div className="rounded-xl border border-white/10 bg-ink/30 p-3">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-white/40">Avg songs</div>
+                <div className="text-[13px] font-medium text-white/55">Avg songs</div>
                 <div className="mt-1 font-display text-3xl font-bold">{selected.avg_songs ?? "N/A"}</div>
               </div>
               <div className="rounded-xl border border-white/10 bg-ink/30 p-3">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-white/40">Travelled</div>
+                <div className="text-[13px] font-medium text-white/55">Travelled</div>
                 <div className="mt-1 font-display text-3xl font-bold">
                   {selected.travel_km != null ? selected.travel_km.toLocaleString() : "N/A"}
                   <span className="ml-1 font-mono text-sm font-normal text-white/40">km</span>
@@ -150,7 +150,7 @@ export default function Tours() {
                 </div>
               </div>
               <div className="rounded-xl border border-white/10 bg-ink/30 p-3">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-white/40">Longest hop</div>
+                <div className="text-[13px] font-medium text-white/55">Longest hop</div>
                 <div className="mt-1 font-display text-3xl font-bold">
                   {selected.longest_hop_km != null ? selected.longest_hop_km.toLocaleString() : "N/A"}
                   <span className="ml-1 font-mono text-sm font-normal text-white/40">km</span>
@@ -159,7 +159,7 @@ export default function Tours() {
               </div>
             </div>
 
-            <p className="mt-4 font-mono text-[10px] leading-relaxed text-white/25">
+            <p className="mt-4 text-[13px] leading-relaxed text-white/25">
               Distance is straight-line between the cities of consecutive shows, counted only
               where both venues have coordinates, so it is a floor rather than a full mileage.
             </p>
@@ -173,10 +173,10 @@ export default function Tours() {
 
         {/* How the average set grew tour by tour: one real number per tour, in order. */}
         <Card className="anim-fade-in-up col-span-6" style={{ animationDelay: "0.2s" }}>
-          <div className="font-mono text-xs uppercase tracking-widest text-white/40">
+          <div className="text-[13px] font-medium text-white/55">
             Average songs per show, tour by tour
           </div>
-          <div className="mt-6 flex items-end gap-4" style={{ height: 190 }}>
+          <div className="mt-6 flex items-end gap-2 overflow-x-auto sm:gap-4" style={{ height: 190 }}>
             {tours.map((tour, i) => {
               const value = tour.avg_songs ?? 0;
               const max = Math.max(...tours.map((t) => t.avg_songs ?? 0), 1);
@@ -197,7 +197,7 @@ export default function Tours() {
                     }`}
                     style={{ height: `${heightPct}%`, animationDelay: `${0.1 + i * 0.05}s` }}
                   />
-                  <span className="line-clamp-2 text-center font-mono text-[10px] uppercase leading-tight tracking-widest text-white/40">
+                  <span className="text-[13px] font-medium line-clamp-2 text-center leading-tight text-white/55">
                     {tour.name}
                   </span>
                 </button>

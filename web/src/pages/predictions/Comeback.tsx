@@ -46,25 +46,23 @@ export default function Comeback() {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.artistRedSeats.src} alt={PHOTOS.artistRedSeats.alt} size={56} accent="violet" />
-          <h1 className="font-display text-6xl font-bold">
-            Coming
-            <br />
-            Back
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">
+            Coming Back
           </h1>
         </div>
-        <p className="max-w-sm text-right font-mono text-xs italic text-white/40">
+        <p className="max-w-sm text-sm leading-relaxed text-white/50 sm:text-right">
           Songs missing from the last show, ranked by their odds of returning
           <br />
           {percent(accuracy.precision)} called correctly across {accuracy.return_slots} returns
         </p>
       </div>
 
-      <div className="mt-10 grid grid-cols-[1.15fr_1fr] gap-6">
+      <div className="mt-10 grid grid-cols-1 gap-y-6 xl:grid-cols-[1.15fr_1fr] gap-6">
         <Card className="anim-fade-in-up" tinted accent="violet">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+          <p className="text-[13px] font-medium text-white/55">
             Most likely to reappear
           </p>
           <div className="mt-5 space-y-4">
@@ -96,13 +94,13 @@ export default function Comeback() {
 
         <div className="space-y-6">
           <Card className="anim-fade-in-up" style={{ animationDelay: "0.1s" }}>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+            <p className="text-[13px] font-medium text-white/55">
               Against picking at random
             </p>
             <div className="mt-4 grid grid-cols-2 gap-4">
               <div>
                 <p className="font-display text-4xl font-bold text-cream">{percent(accuracy.precision)}</p>
-                <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-white/35">
+                <p className="text-[13px] font-medium mt-1 text-white/50">
                   this prediction
                 </p>
               </div>
@@ -110,27 +108,27 @@ export default function Comeback() {
                 <p className="font-display text-4xl font-bold text-white/40">
                   {percent(accuracy.candidate_return_rate)}
                 </p>
-                <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-white/35">
+                <p className="text-[13px] font-medium mt-1 text-white/50">
                   a candidate at random
                 </p>
               </div>
             </div>
-            <p className="mt-4 font-mono text-[11px] leading-relaxed text-white/40">
+            <p className="mt-4 text-[13px] leading-relaxed text-white/40">
               On any given night only {percent(accuracy.candidate_return_rate)} of the shelved songs
               come back{lift ? `, so the ranking is worth about ${lift} times a blind guess` : ""}.
             </p>
           </Card>
 
           <Card className="anim-fade-in-up" style={{ animationDelay: "0.15s" }}>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+            <p className="text-[13px] font-medium text-white/55">
               Which method ships, and why
             </p>
-            <p className="mt-2 font-mono text-[11px] leading-relaxed text-white/45">
+            <p className="mt-2 text-[13px] leading-relaxed text-white/45">
               Picked across {accuracy.validation_folds} separate validation stretches (
               {accuracy.validation_shows} shows), scored once on {accuracy.test_shows} later ones.
               The ticks on each validation bar are the individual folds.
             </p>
-            <p className="mt-2 font-mono text-[11px] leading-relaxed text-white/45">
+            <p className="mt-2 text-[13px] leading-relaxed text-white/45">
               {accuracy.selection.reason.startsWith("kept the simpler")
                 ? `The trained model had the higher mean, ${Math.round(accuracy.selection.leader_mean * 1000) / 10}% against ${Math.round(accuracy.selection.chosen_mean * 1000) / 10}%, but a gap that small is smaller than the scatter it sits in. Where the folds cannot tell two methods apart, the simpler one ships.`
                 : `The leading method was ahead on the folds by more than they disagreed among themselves, so there was no tie to break.`}
@@ -141,10 +139,10 @@ export default function Comeback() {
           </Card>
 
           <Card className="anim-fade-in-up" tinted accent="ember" style={{ animationDelay: "0.2s" }}>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ember-light/70">
+            <p className="text-[13px] font-medium text-ember-light/70">
               A word on being "due"
             </p>
-            <p className="mt-3 font-mono text-[11px] leading-relaxed text-white/50">
+            <p className="mt-3 text-[13px] leading-relaxed text-white/50">
               Ranking songs by how overdue they are against their own usual gap scores{" "}
               {percent(overdueScore)}. The intuition that a song is owed a comeback because it has
               been away a long time is, on this data, worth nothing at all. What actually predicts a
@@ -156,7 +154,7 @@ export default function Comeback() {
           <PhotoPanel
             photo={PHOTOS.synthTable}
             accent="violet"
-            tag="BACK IN THE SET"
+            tag="Back in the set"
             className="anim-fade-in-up h-44"
             style={{ animationDelay: "0.25s" }}
           />

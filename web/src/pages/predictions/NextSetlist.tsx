@@ -20,16 +20,14 @@ export default function NextSetlist() {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.guitaristConfetti.src} alt={PHOTOS.guitaristConfetti.alt} size={56} accent="violet" />
-          <h1 className="font-display text-6xl font-bold">
-            Next
-            <br />
-            Setlist
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">
+            Next Setlist
           </h1>
         </div>
-        <p className="text-right font-mono text-xs italic text-white/40">
+        <p className="text-sm leading-relaxed text-white/50 sm:text-right">
           Ranked probability across ~{predictions.length} songs
           <br />
           model accuracy 91%
@@ -53,7 +51,7 @@ export default function NextSetlist() {
             style={{ animationDelay: "0.05s" }}
           >
             <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-violet/25 blur-3xl" />
-            <span className="relative font-mono text-xs uppercase tracking-[0.3em] text-violet-light">Most likely opener</span>
+            <span className="text-[13px] font-medium relative text-violet-light">Most likely opener</span>
             <RingGauge percentage={top.probability * 100} size={236} />
             <div className="relative">
               <div className="font-display text-4xl font-bold">{top.song_name}</div>
@@ -62,7 +60,7 @@ export default function NextSetlist() {
           </Card>
 
           <Card className="anim-fade-in-up col-span-6 flex min-h-[28rem] flex-col justify-center lg:col-span-3" style={{ animationDelay: "0.1s" }}>
-            <div className="font-mono text-sm uppercase tracking-widest text-white/40">Next in line</div>
+            <div className="text-sm font-medium text-white/55">Next in line</div>
             <div className="mt-6 space-y-5">
               {ranked.map((song, i) => (
                 <div key={song.song_id} className="flex items-center gap-3">

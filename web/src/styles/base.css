@@ -1,0 +1,278 @@
+/* Base layer shared by the app and the marver design canvas.
+ *
+ * Nothing in here may use `@tailwind`, `@apply` or `theme()`: those are Tailwind-version
+ * specific, and this file is compiled by both Tailwind 3 (the app) and Tailwind 4 (the
+ * canvas). Token values arrive as CSS custom properties that each side defines its own way. */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Browser-owned surfaces, claimed: selection, caret and scrollbar all default to a styling
+   that belongs to no brand, and leaving them is the fastest giveaway of unconsidered work. */
+::selection {
+  background-color: var(--uc-violet);
+  color: var(--uc-ink);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(165, 49, 214, 0.35);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(165, 49, 214, 0.55);
+}
+
+/* Every control that responds to a click responds to a hover first. Fixed once in the base
+   layer rather than with scattered cursor-pointer classes, so it holds for the app too. */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+a[href] {
+  cursor: pointer;
+}
+
+/* Static film-grain overlay, layered on top of photos and glows for a printed,
+   analog-sleeve texture instead of flat digital gradients. */
+.grain-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: var(--uc-grain);
+  mix-blend-mode: overlay;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* Setlist Trend chart: the line/area/points draw themselves in on mount instead
+   of appearing static, so the chart visibly "plays" the years passing. */
+@keyframes trend-draw-line {
+  from { stroke-dashoffset: 2000; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes trend-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes trend-pop-in {
+  from { opacity: 0; transform: scale(0.2); }
+  to { opacity: 1; transform: scale(1); }
+}
+.trend-line-draw {
+  stroke-dasharray: 2000;
+  animation: trend-draw-line 1.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.trend-area-fade { animation: trend-fade-in 1.2s ease-out 0.7s both; }
+.trend-dot-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: trend-pop-in 0.45s ease-out both;
+}
+.trend-era-fade { animation: trend-fade-in 0.9s ease-out both; }
+.trend-cover-fade { animation: trend-fade-in 1.6s ease-out both; }
+
+/* Generic entrance animations reused across every chart/page so switching tabs always
+   feels like the content is settling into place rather than popping in statically. */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes draw-in {
+  from { stroke-dashoffset: 2000; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes width-in {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.anim-fade-in-up { animation: fade-in-up 0.6s ease-out both; }
+.anim-pop-in {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pop-in 0.45s ease-out both;
+}
+.anim-draw-in {
+  stroke-dasharray: 2000;
+  animation: draw-in 1.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.anim-width-in {
+  transform-origin: left;
+  animation: width-in 0.9s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+.anim-photo-chip { animation: fade-in-up 0.8s ease-out both; }
+/* Same width-in keyframes as .anim-width-in, but scoped to each SVG shape's own
+   bounding box (fill-box) rather than the whole SVG viewport, so horizontal bars in
+   charts like the Cluster Explorer timeline grow from their own left edge in place. */
+.anim-bar-in {
+  transform-box: fill-box;
+  transform-origin: left;
+  animation: width-in 0.7s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+/* One deliberate entrance per region, and none at all for a reader who asked for stillness. */
+/* "Now playing" equalizer in the sidebar */
+.eq-bar {
+  width: 3px;
+  height: 100%;
+  border-radius: 1px;
+  background: currentColor;
+  transform-origin: bottom;
+  animation: eq-bounce 0.9s ease-in-out infinite alternate;
+}
+@keyframes eq-bounce {
+  0% { transform: scaleY(0.25); }
+  50% { transform: scaleY(1); }
+  100% { transform: scaleY(0.45); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-bar,
+  .trend-line-draw,
+  .trend-area-fade,
+  .trend-dot-pop,
+  .trend-era-fade,
+  .trend-cover-fade,
+  .anim-fade-in-up,
+  .anim-pop-in,
+  .anim-draw-in,
+  .anim-width-in,
+  .anim-photo-chip,
+  .anim-bar-in {
+    animation: none;
+  }
+}
+
+/* Figures line up in columns everywhere: this is a data site first. */
+body {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Fallback keyboard focus for any control that does not draw its own ring. Zero
+   specificity via :where, so a component's own focus-visible styles always win. */
+:where(button, a[href], [role="button"], [role="tab"], input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid rgb(255 255 255 / 0.55);
+  outline-offset: 2px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+/* Hollow poster type for oversized background codes. */
+.text-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgb(255 255 255 / 0.13);
+}
+
+/* Shown when WebGL is unavailable: the same palette, held still. */
+.liquid-fallback {
+  background:
+    radial-gradient(60% 50% at 20% 20%, rgb(165 49 214 / 0.35), transparent 70%),
+    radial-gradient(50% 45% at 80% 70%, rgb(226 73 47 / 0.25), transparent 70%),
+    #08040c;
+}
+
+/* Endless marquee: the track is two copies wide and slides by exactly one copy. */
+.marquee-track {
+  animation: marquee var(--marquee-duration, 60s) linear infinite;
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes vinyl-spin {
+  to { transform: rotate(360deg); }
+}
+.vinyl-spin {
+  animation: vinyl-spin 9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .vinyl-spin {
+    animation: none;
+  }
+}
+
+/* ---- Psychedelic layer ---------------------------------------------------------------- */
+
+/* Chromatic split on poster titles: magenta and cyan ghosts either side, which drift apart and
+   wobble when hovered, like light through a cheap lens at the back of a hall. */
+.chroma {
+  text-shadow: -0.035em 0 rgb(255 40 190 / 0.45), 0.035em 0 rgb(40 220 255 / 0.38);
+  transition: text-shadow 0.4s ease;
+}
+.chroma:hover {
+  animation: chroma-wobble 1.6s ease-in-out infinite;
+}
+@keyframes chroma-wobble {
+  0%, 100% { text-shadow: -0.035em 0 rgb(255 40 190 / 0.5), 0.035em 0 rgb(40 220 255 / 0.45); }
+  33% { text-shadow: -0.07em 0.02em rgb(255 40 190 / 0.6), 0.06em -0.02em rgb(40 220 255 / 0.5); }
+  66% { text-shadow: 0.03em -0.015em rgb(255 40 190 / 0.55), -0.05em 0.02em rgb(40 220 255 / 0.5); }
+}
+
+/* Photos melt on hover through the #uc-melt SVG displacement filter defined in App. */
+.melt-hover {
+  transition: filter 0.6s ease;
+}
+.group:hover .melt-hover,
+.melt-hover:hover {
+  filter: url(#uc-melt) saturate(1.25);
+}
+
+/* The liquid field drifts slowly round the colour wheel. */
+.hue-drift {
+  animation: hue-drift 38s ease-in-out infinite alternate;
+}
+@keyframes hue-drift {
+  from { filter: blur(2px) saturate(1.15) hue-rotate(-22deg); }
+  to { filter: blur(2px) saturate(1.3) hue-rotate(26deg); }
+}
+
+/* Sound rings spreading from the centre of the record. */
+.pulse-ring {
+  animation: pulse-ring 4.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+@keyframes pulse-ring {
+  from { transform: scale(0.35); opacity: 0.55; }
+  to { transform: scale(1.5); opacity: 0; }
+}
+
+/* Playhead crossing the tour waveform. */
+.tour-playhead {
+  animation: playhead 16s linear infinite;
+}
+@keyframes playhead {
+  from { left: 0%; }
+  to { left: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chroma:hover,
+  .hue-drift,
+  .pulse-ring,
+  .tour-playhead {
+    animation: none;
+  }
+  .group:hover .melt-hover,
+  .melt-hover:hover {
+    filter: none;
+  }
+  .pulse-ring,
+  .tour-playhead {
+    display: none;
+  }
+}

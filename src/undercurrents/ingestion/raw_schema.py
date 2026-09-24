@@ -6,10 +6,21 @@ class RawCountry(BaseModel):
     name: str
 
 
+class RawCoords(BaseModel):
+    # Optional, because at least one show carries `"coords": {}`. Requiring them made the
+    # whole setlist fail validation and lose its set names and guest credits along with it.
+    lat: float | None = None
+    long: float | None = None
+
+
 class RawCity(BaseModel):
     name: str
     state: str | None = None
     country: RawCountry
+    # setlist.fm ships city-level coordinates with every setlist. They were ignored for a
+    # long time and geocoded again from Nominatim, which was wasted work: these cover 766 of
+    # the 767 shows and cost nothing.
+    coords: RawCoords | None = None
 
 
 class RawVenue(BaseModel):
@@ -32,15 +43,26 @@ class RawCoverArtist(BaseModel):
     name: str
 
 
+class RawGuest(BaseModel):
+    mbid: str | None = None
+    name: str
+
+
 class RawSong(BaseModel):
     name: str
     cover: RawCoverArtist | None = None
     info: str | None = None
     tape: bool = False
+    # `with` is a Python keyword, so the field is aliased. It names a guest who performed
+    # this song with the band.
+    guest: RawGuest | None = Field(default=None, alias="with")
 
 
 class RawSet(BaseModel):
     encore: int | None = None
+    # Named segments: "B-Stage", "Acoustic", and occasionally an album title, which marks a
+    # night the record was played in full.
+    name: str | None = None
     song: list[RawSong] = Field(default_factory=list)
 
 

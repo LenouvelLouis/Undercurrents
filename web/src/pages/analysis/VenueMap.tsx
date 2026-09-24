@@ -127,16 +127,14 @@ export default function VenueMap() {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.arenaAerial.src} alt={PHOTOS.arenaAerial.alt} size={56} accent="ember" />
-          <h1 className="font-display text-6xl font-bold">
-            Venue
-            <br />
-            Map
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">
+            Venue Map
           </h1>
         </div>
-        <p className="max-w-sm text-right font-mono text-xs italic text-white/40">
+        <p className="max-w-sm text-sm leading-relaxed text-white/50 sm:text-right">
           {venues.length} venues, {points.groups.length} points on the map (click one for details)
           <br />
           scroll, drag, or use the + / − to explore
@@ -180,15 +178,15 @@ export default function VenueMap() {
           <div className="pointer-events-none relative z-10 flex flex-wrap items-center gap-x-4 gap-y-1 px-4 pt-4 pr-28">
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#e2492f" }} />
-              <span className="font-mono text-[10px] uppercase tracking-widest text-white/40">exact city</span>
+              <span className="text-[13px] font-medium text-white/55">exact city</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#a5462f" }} />
-              <span className="font-mono text-[10px] uppercase tracking-widest text-white/40">country center, city unresolved</span>
+              <span className="text-[13px] font-medium text-white/55">country center, city unresolved</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full border border-white/50" />
-              <span className="font-mono text-[10px] uppercase tracking-widest text-white/40">size = shows played</span>
+              <span className="text-[13px] font-medium text-white/55">size = shows played</span>
             </div>
           </div>
           <ComposableMap projection="geoNaturalEarth1" projectionConfig={{ scale: 148 }} className="h-[560px] w-full">
@@ -340,7 +338,7 @@ export default function VenueMap() {
             </ZoomableGroup>
           </ComposableMap>
           <div className="grain-overlay" />
-          <div className="pointer-events-none absolute bottom-3 left-4 font-mono text-[10px] uppercase tracking-widest text-white/30">
+          <div className="text-[13px] font-medium pointer-events-none absolute bottom-3 left-4 text-white/45">
             {cityResolved} of {venues.length} venues placed on their real city, rest on country center
           </div>
         </Card>
@@ -358,7 +356,7 @@ export default function VenueMap() {
                 <h2 className="font-display text-2xl font-bold">
                   {activePoint ? activePoint.venues[0].city ?? activePoint.venues[0].name : activeCountry!.label}
                 </h2>
-                <span className="rounded-full border border-ember/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-ember-light">
+                <span className="text-[13px] font-medium rounded-full border border-ember/40 px-2 py-0.5 text-ember-light">
                   {(activePoint ?? activeCountry!).venues.length} venue{(activePoint ?? activeCountry!).venues.length === 1 ? "" : "s"}
                 </span>
               </div>
@@ -396,7 +394,7 @@ export default function VenueMap() {
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="anim-fade-in-up" accent="ember">
-          <div className="font-mono text-xs uppercase tracking-widest text-white/40">Most played venues</div>
+          <div className="text-[13px] font-medium text-white/55">Most played venues</div>
           <div className="mt-4 space-y-3">
             {byShows.map((venue, i) => (
               <div key={venue.id} className="anim-fade-in-up" style={{ animationDelay: `${i * 0.04}s` }}>
@@ -417,7 +415,7 @@ export default function VenueMap() {
 
         <Card className="anim-fade-in-up" accent="ember" style={{ animationDelay: "0.05s" }}>
           <div className="flex items-baseline justify-between">
-            <div className="font-mono text-xs uppercase tracking-widest text-white/40">Most played cities</div>
+            <div className="text-[13px] font-medium text-white/55">Most played cities</div>
             <div className="font-mono text-[10px] text-white/30">{cities.length} cities</div>
           </div>
           <div className="mt-4 space-y-3">
@@ -447,7 +445,7 @@ export default function VenueMap() {
 
         <Card className="anim-fade-in-up" accent="ember" style={{ animationDelay: "0.1s" }}>
           <div className="flex items-baseline justify-between">
-            <div className="font-mono text-xs uppercase tracking-widest text-white/40">Biggest rooms played</div>
+            <div className="text-[13px] font-medium text-white/55">Biggest rooms played</div>
             <div className="font-mono text-[10px] text-white/30">{withCapacity.length} known</div>
           </div>
           <div className="mt-4 space-y-3">
@@ -469,7 +467,7 @@ export default function VenueMap() {
               <p className="font-mono text-xs text-white/30">No capacity resolved for these venues yet.</p>
             )}
           </div>
-          <p className="mt-4 font-mono text-[10px] leading-relaxed text-white/25">
+          <p className="mt-4 text-[13px] leading-relaxed text-white/25">
             Capacity comes from Wikidata and only resolves where a venue name maps to exactly
             one entity in its own country, so this ranks the {withCapacity.length} rooms that
             matched, not all {venues.length}.

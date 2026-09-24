@@ -5,7 +5,7 @@ import type { Photo } from "../lib/photos";
 interface PhotoPanelProps {
   photo: Photo;
   accent?: Accent;
-  /** Small mono tag in the top corner, e.g. "FROM THE ARCHIVE" or a year. */
+  /** Small tag in the top corner, e.g. a year. */
   tag?: string;
   className?: string;
   style?: CSSProperties;
@@ -44,14 +44,14 @@ export default function PhotoPanel({
 }: PhotoPanelProps) {
   return (
     <figure
-      className={`anim-fade-in-up group relative overflow-hidden rounded-2xl border shadow-xl shadow-black/40 transition-colors duration-300 ${ringClass[accent]} ${className}`}
+      className={`group relative overflow-hidden rounded-2xl border shadow-xl shadow-black/40 transition-colors duration-300 ${ringClass[accent]} ${className}`}
       style={style}
     >
       <img
         src={photo.src}
         alt={photo.alt}
         loading="lazy"
-        className="h-full w-full object-cover opacity-90 saturate-[0.9] transition-all duration-500 ease-out group-hover:scale-[1.04] group-hover:opacity-100 group-hover:saturate-100"
+        className="melt-hover h-full w-full object-cover opacity-90 saturate-[0.9] transition-all duration-500 ease-out group-hover:scale-[1.04] group-hover:opacity-100 group-hover:saturate-100"
         style={{ objectPosition: focus }}
       />
       <div className="grain-overlay" />
@@ -62,14 +62,14 @@ export default function PhotoPanel({
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink via-ink/65 to-transparent" />
 
       {tag && (
-        <span className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/20 bg-ink/60 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-white/70 backdrop-blur-sm">
+        <span className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/20 bg-ink/60 px-2.5 py-1 text-[11px] text-white/75 backdrop-blur-sm">
           {tag}
         </span>
       )}
 
       <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center gap-2 px-4 pb-4">
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotClass[accent]}`} />
-        <span className="font-mono text-[11px] uppercase leading-tight tracking-wide text-white/80">
+        <span className="text-[13px] leading-tight text-white/80">
           {photo.caption}
         </span>
       </figcaption>

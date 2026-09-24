@@ -51,16 +51,14 @@ export default function TransitionGraph() {
 
   return (
     <div>
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.silhouetteLasers.src} alt={PHOTOS.silhouetteLasers.alt} size={56} accent="ember" />
-          <h1 className="font-display text-6xl font-bold">
-            Transition
-            <br />
-            Graph
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">
+            Transition Graph
           </h1>
         </div>
-        <p className="text-right font-mono text-xs italic text-white/40">
+        <p className="text-sm leading-relaxed text-white/50 sm:text-right">
           What follows a given song
           <br />
           line weight &amp; arrow size = transition probability
@@ -162,7 +160,7 @@ export default function TransitionGraph() {
         <Card className="anim-fade-in-up col-span-5 lg:col-span-2" style={{ animationDelay: "0.1s" }}>
           <SongSelect songs={songs} value={selected} onChange={setSelected} accent="ember" />
           <div className="mt-5 flex items-center justify-between">
-            <span className="font-mono text-xs uppercase tracking-widest text-white/40">Ranked follow-ons</span>
+            <span className="text-[13px] font-medium text-white/55">Ranked follow-ons</span>
             {(transitions?.follow_ons.length ?? 0) > GRAPH_TOP_N && (
               <span className="font-mono text-[10px] text-white/30">top {GRAPH_TOP_N} drawn on the graph</span>
             )}

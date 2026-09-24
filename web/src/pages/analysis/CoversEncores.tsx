@@ -28,16 +28,14 @@ export default function CoversEncores() {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.guitaristClose.src} alt={PHOTOS.guitaristClose.alt} size={56} accent="ember" />
-          <h1 className="font-display text-6xl font-bold">
-            Covers &amp;
-            <br />
-            Encores
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">
+            Covers &amp; Encores
           </h1>
         </div>
-        <p className="text-right font-mono text-xs italic text-white/40">
+        <p className="text-sm leading-relaxed text-white/50 sm:text-right">
           {totalCovers} cover performances from {covers.length} artists
           <br />
           {encores ? `${encores.encore_entries} encore slots across ${encores.shows_with_encore} shows` : ""}
@@ -47,7 +45,7 @@ export default function CoversEncores() {
       <div className="mt-10 grid grid-cols-6 gap-6">
         {/* Encore headline: how often a show even has one, straight from the counts. */}
         <Card tinted accent="ember" className="anim-fade-in-up col-span-6 flex flex-col justify-center py-10 text-center md:col-span-3 lg:col-span-2">
-          <div className="font-mono text-xs uppercase tracking-widest text-white/50">Shows with an encore</div>
+          <div className="text-[13px] font-medium text-white/50">Shows with an encore</div>
           <div className="mt-3 font-display text-7xl font-bold leading-none">
             {encores?.encore_rate != null ? `${Math.round(encores.encore_rate * 100)}%` : "N/A"}
           </div>
@@ -57,7 +55,7 @@ export default function CoversEncores() {
         </Card>
 
         <Card className="anim-fade-in-up col-span-6 md:col-span-3 lg:col-span-4" style={{ animationDelay: "0.05s" }}>
-          <div className="font-mono text-sm uppercase tracking-widest text-white/40">
+          <div className="text-sm font-medium text-white/55">
             What closes the show
           </div>
           <div className="mt-5 space-y-3">
@@ -104,7 +102,7 @@ export default function CoversEncores() {
             artist reveals which songs, which is the part the counts alone never tell you. */}
         <Card className="anim-fade-in-up col-span-6" style={{ animationDelay: "0.25s" }}>
           <div className="flex items-baseline justify-between">
-            <div className="font-mono text-sm uppercase tracking-widest text-white/40">
+            <div className="text-sm font-medium text-white/55">
               Artists covered, most played first
             </div>
             <div className="font-mono text-[10px] text-white/30">click an artist for the songs</div>
@@ -134,7 +132,7 @@ export default function CoversEncores() {
                   </button>
                   {open && (
                     <div className="anim-fade-in-up mt-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-white/35">
+                      <div className="text-[13px] font-medium text-white/50">
                         {formatShort(artist.first_played)} to {formatShort(artist.last_played)} ·{" "}
                         {artist.song_count} song{artist.song_count === 1 ? "" : "s"}
                       </div>

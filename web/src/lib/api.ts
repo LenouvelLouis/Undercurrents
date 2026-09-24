@@ -8,8 +8,12 @@ async function get<T>(path: string): Promise<T> {
 
 import type {
   Anecdote,
+  AudioFeatures,
   BacktestBundle,
   Benchmarks,
+  DebutCheck,
+  NightNotes,
+  WeatherReport,
   ComebackPrediction,
   EncorePrediction,
   RunningOrder,
@@ -67,6 +71,10 @@ export const api = {
   heatmapCooccurrence: () => get<CooccurrenceHeatmap>("/analysis/heatmap/cooccurrence"),
   benchmarks: () => get<Benchmarks>("/predictions/benchmarks"),
   backtests: () => get<BacktestBundle>("/predictions/backtests"),
+  nightNotes: () => get<NightNotes>("/analysis/night-notes"),
+  debutCheck: () => get<DebutCheck>("/analysis/night-notes/debut-check"),
+  audioFeatures: () => get<AudioFeatures>("/analysis/audio"),
+  weather: () => get<WeatherReport>("/analysis/weather"),
   runningOrder: () => get<RunningOrder>("/predictions/running-order"),
   encorePrediction: () => get<EncorePrediction>("/predictions/encore"),
   comebackPrediction: () => get<ComebackPrediction>("/predictions/comeback"),

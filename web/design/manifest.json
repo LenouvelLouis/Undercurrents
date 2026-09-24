@@ -1,0 +1,110 @@
+{
+  "project": {
+    "name": "web",
+    "description": "Undercurrents: eighteen years of Tame Impala setlists, venues and tours, read through predictive models that always show their score against the simplest baseline that could beat them."
+  },
+  "boards": [
+    {
+      "name": "redesign",
+      "title": "Redesign",
+      "description": "The portal rebuilt to the craft bar: shell, one analysis page, one prediction page."
+    }
+  ],
+  "scenes": [
+    {
+      "name": "analysis",
+      "frames": 1
+    },
+    {
+      "name": "demo",
+      "frames": 3
+    },
+    {
+      "name": "portal",
+      "frames": 3
+    },
+    {
+      "name": "prediction",
+      "frames": 1
+    }
+  ],
+  "frames": [
+    {
+      "id": "analysis/night-notes",
+      "file": "design/scenes/analysis/night-notes.tsx",
+      "kind": "tsx",
+      "scene": "analysis",
+      "title": "Night Notes",
+      "viewport": "laptop",
+      "description": "A dense analysis page rebuilt to the craft bar: one real chart instead of hand-drawn bars, drawn icons, and figures set in sentences rather than as oversized stat heroes."
+    },
+    {
+      "id": "demo/dark",
+      "file": "design/scenes/demo/dark.tsx",
+      "kind": "tsx",
+      "scene": "demo",
+      "title": "Demo - error state",
+      "viewport": "mobile"
+    },
+    {
+      "id": "demo/form",
+      "file": "design/scenes/demo/form.tsx",
+      "kind": "tsx",
+      "scene": "demo",
+      "title": "Demo - form",
+      "viewport": "laptop"
+    },
+    {
+      "id": "demo/welcome",
+      "file": "design/scenes/demo/welcome.tsx",
+      "kind": "tsx",
+      "scene": "demo",
+      "title": "Demo - welcome",
+      "viewport": "mobile"
+    },
+    {
+      "id": "portal/a-landing-poster",
+      "file": "design/scenes/portal/a-landing-poster.tsx",
+      "kind": "tsx",
+      "scene": "portal",
+      "title": "Landing - poster",
+      "viewport": "laptop",
+      "theme": "dark",
+      "description": "Landing direction A: the record sleeve. One photograph carries the page, the figures sit under it as a quiet strip rather than as oversized stat heroes.",
+      "variantGroup": "portal",
+      "variant": "a"
+    },
+    {
+      "id": "portal/b-landing-archive",
+      "file": "design/scenes/portal/b-landing-archive.tsx",
+      "kind": "tsx",
+      "scene": "portal",
+      "title": "Landing - archive index",
+      "viewport": "laptop",
+      "theme": "dark",
+      "description": "Landing direction B: the archive index. The two halves of the product are the page, the photograph is evidence beside them rather than a backdrop behind everything.",
+      "variantGroup": "portal",
+      "variant": "b"
+    },
+    {
+      "id": "portal/nav",
+      "file": "design/scenes/portal/nav.tsx",
+      "kind": "tsx",
+      "scene": "portal",
+      "title": "Navigation",
+      "viewport": "laptop",
+      "theme": "dark",
+      "description": "The two-section tab system, rebuilt without the 01-13 numbering the page order never justified, and with the section accent doing the work the numbers were doing."
+    },
+    {
+      "id": "prediction/encore",
+      "file": "design/scenes/prediction/encore.tsx",
+      "kind": "tsx",
+      "scene": "prediction",
+      "title": "Encore",
+      "viewport": "laptop",
+      "theme": "dark",
+      "description": "A prediction page rebuilt to the craft bar: the shipped method, the score it earned on held-out shows, and the simpler rule that beat it, all readable without a legend."
+    }
+  ]
+}

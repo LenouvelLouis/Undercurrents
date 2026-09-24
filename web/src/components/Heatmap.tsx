@@ -58,7 +58,7 @@ export default function Heatmap({
             {cols.map((col) => (
               <div
                 key={col.key}
-                className="flex-1 pb-1 text-center font-mono text-[9px] uppercase tracking-wide text-white/35"
+                className="text-[11px] flex-1 pb-1 text-center text-white/50"
                 style={{ minWidth: 20 }}
               >
                 {col.label}
@@ -107,13 +107,13 @@ export default function Heatmap({
 
       {/* Scale legend: always present, since colour is the only encoding of magnitude here. */}
       <div className="mt-4 flex items-center gap-3">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-white/35">{legendLow}</span>
+        <span className="text-[13px] font-medium text-white/50">{legendLow}</span>
         <div className="flex h-2 flex-1 max-w-[220px] overflow-hidden rounded-full">
           {RAMP.map((step) => (
             <div key={step} className="flex-1" style={{ backgroundColor: step }} />
           ))}
         </div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-white/35">{legendHigh}</span>
+        <span className="text-[13px] font-medium text-white/50">{legendHigh}</span>
         <span className="font-mono text-[10px] text-white/25">peak {maxValue}</span>
       </div>
 

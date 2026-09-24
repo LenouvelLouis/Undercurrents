@@ -1,0 +1,16 @@
+{
+  "title": "Redesign",
+  "description": "The portal rebuilt to the craft bar: shell, one analysis page, one prediction page.",
+  "layout": {
+    "rows": [
+      { "columns": ["portal", { "space": 2 }, "analysis", "prediction"] }
+    ]
+  },
+  "nodes": [
+    { "frame": "portal/a-landing-poster" },
+    { "frame": "portal/b-landing-archive" },
+    { "frame": "portal/nav" },
+    { "frame": "analysis/night-notes" },
+    { "frame": "prediction/encore" }
+  ]
+}

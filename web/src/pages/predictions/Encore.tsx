@@ -27,7 +27,7 @@ export function MethodTable({ methods }: { methods: MethodScore[] }) {
             >
               {method.name}
               {method.chosen && (
-                <span className="ml-2 font-mono text-[9px] uppercase tracking-wider text-violet-light">
+                <span className="text-[11px] ml-2 text-violet-light">
                   chosen
                 </span>
               )}
@@ -38,7 +38,7 @@ export function MethodTable({ methods }: { methods: MethodScore[] }) {
           </div>
           <div className="mt-1.5 space-y-1">
             <div className="flex items-center gap-2">
-              <span className="w-20 shrink-0 font-mono text-[9px] uppercase tracking-wider text-white/30">
+              <span className="text-[11px] w-20 shrink-0 text-white/45">
                 validation
               </span>
               <div className="relative h-1.5 grow rounded-full bg-white/[0.06]">
@@ -58,7 +58,7 @@ export function MethodTable({ methods }: { methods: MethodScore[] }) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-20 shrink-0 font-mono text-[9px] uppercase tracking-wider text-white/30">
+              <span className="text-[11px] w-20 shrink-0 text-white/45">
                 test
               </span>
               <div className="h-1.5 grow rounded-full bg-white/[0.06]">
@@ -106,21 +106,21 @@ export default function Encore() {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.singerConfetti.src} alt={PHOTOS.singerConfetti.alt} size={56} accent="violet" />
-          <h1 className="font-display text-6xl font-bold">Encore</h1>
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">Encore</h1>
         </div>
-        <p className="max-w-sm text-right font-mono text-xs italic text-white/40">
+        <p className="max-w-sm text-sm leading-relaxed text-white/50 sm:text-right">
           What closes the night
           <br />
           {percent(accuracy.precision)} of {accuracy.encore_slots} encore slots called correctly
         </p>
       </div>
 
-      <div className="mt-10 grid grid-cols-[1.15fr_1fr] gap-6">
+      <div className="mt-10 grid grid-cols-1 gap-y-6 xl:grid-cols-[1.15fr_1fr] gap-6">
         <Card className="anim-fade-in-up" tinted accent="violet">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+          <p className="text-[13px] font-medium text-white/55">
             Most likely to be in it
           </p>
           <div className="mt-5 space-y-4">
@@ -153,10 +153,10 @@ export default function Encore() {
 
         <div className="space-y-6">
           <Card className="anim-fade-in-up" style={{ animationDelay: "0.1s" }}>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+            <p className="text-[13px] font-medium text-white/55">
               Which method ships, and why
             </p>
-            <p className="mt-2 font-mono text-[11px] leading-relaxed text-white/45">
+            <p className="mt-2 text-[13px] leading-relaxed text-white/45">
               {accuracy.methods.length} candidate methods, each asked to name as many songs as that
               night's encore actually held. The winner was picked across{" "}
               {accuracy.validation_folds} separate validation stretches ({accuracy.validation_shows}{" "}
@@ -166,12 +166,12 @@ export default function Encore() {
             <div className="mt-5">
               <MethodTable methods={accuracy.methods} />
             </div>
-            <p className="mt-4 font-mono text-[11px] leading-relaxed text-white/45">
+            <p className="mt-4 text-[13px] leading-relaxed text-white/45">
               {accuracy.selection.reason.startsWith("kept the simpler")
                 ? `The highest mean belonged to ${accuracy.selection.leader} at ${Math.round(accuracy.selection.leader_mean * 1000) / 10}%, but its lead was inside the fold-to-fold scatter, so the simpler method was kept instead.`
                 : `No tie to break: the leading method was ahead on the folds by more than they disagreed among themselves.`}
             </p>
-            <p className="mt-5 border-t border-white/10 pt-4 font-mono text-[11px] leading-relaxed text-white/40">
+            <p className="mt-5 border-t border-white/10 pt-4 text-[13px] leading-relaxed text-white/40">
               {lostBy ? (
                 <>
                   Worth saying plainly: on the test window another method beat the chosen one by{" "}
@@ -189,10 +189,10 @@ export default function Encore() {
           </Card>
 
           <Card className="anim-fade-in-up" style={{ animationDelay: "0.15s" }}>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+            <p className="text-[13px] font-medium text-white/55">
               What history is worth here
             </p>
-            <p className="mt-3 font-mono text-[11px] leading-relaxed text-white/45">
+            <p className="mt-3 text-[13px] leading-relaxed text-white/45">
               Ranking by lifetime encore count scores{" "}
               {percent(accuracy.methods.find((m) => m.key === "lifetime")?.test_precision ?? 0)}, near
               nothing. The encore is not a hall of fame: it turns over, and what they encored last
@@ -203,7 +203,7 @@ export default function Encore() {
           <PhotoPanel
             photo={PHOTOS.stageRainbowLights}
             accent="violet"
-            tag="THE LAST SONGS"
+            tag="The last songs"
             className="anim-fade-in-up h-44"
             style={{ animationDelay: "0.2s" }}
           />

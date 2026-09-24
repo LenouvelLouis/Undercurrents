@@ -36,7 +36,7 @@ function SeedSweep({ runs }: { runs: RunningOrderRun[] }) {
             </div>
             <div className="mt-2 space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="w-16 shrink-0 font-mono text-[10px] uppercase tracking-wider text-violet-light/70">model</span>
+                <span className="text-[13px] font-medium w-16 shrink-0 text-violet-light/70">model</span>
                 <div className="h-2.5 grow rounded-full bg-white/[0.06]">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-violet-dark via-violet to-violet-light"
@@ -45,7 +45,7 @@ function SeedSweep({ runs }: { runs: RunningOrderRun[] }) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-16 shrink-0 font-mono text-[10px] uppercase tracking-wider text-white/35">most played</span>
+                <span className="text-[13px] font-medium w-16 shrink-0 text-white/50">most played</span>
                 <div className="h-2.5 grow rounded-full bg-white/[0.06]">
                   <div className="h-full rounded-full bg-white/25" style={{ width: `${baseWidth}%` }} />
                 </div>
@@ -83,16 +83,14 @@ export default function RunningOrder() {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="flex items-center gap-4">
           <PhotoChip src={PHOTOS.roundStageAerial.src} alt={PHOTOS.roundStageAerial.alt} size={56} accent="violet" />
-          <h1 className="font-display text-6xl font-bold">
-            Running
-            <br />
-            Order
+          <h1 className="chroma font-hero text-[clamp(2.4rem,6vw,5.6rem)] font-extrabold uppercase leading-[0.88] tracking-tight">
+            Running Order
           </h1>
         </div>
-        <p className="max-w-sm text-right font-mono text-xs italic text-white/40">
+        <p className="max-w-sm text-sm leading-relaxed text-white/50 sm:text-right">
           The set written out first song to last, not just which songs
           <br />
           {percent(production.model.songs_included)} of the set right, trained on{" "}
@@ -100,12 +98,12 @@ export default function RunningOrder() {
         </p>
       </div>
 
-      <div className="mt-10 grid grid-cols-[1.15fr_1fr] gap-6">
+      <div className="mt-10 grid grid-cols-1 gap-y-6 xl:grid-cols-[1.15fr_1fr] gap-6">
         <Card className="anim-fade-in-up" tinted accent="violet">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+          <p className="text-[13px] font-medium text-white/55">
             Predicted set · {data.length} songs
           </p>
-          <p className="mt-1 font-mono text-[11px] italic text-white/35">
+          <p className="mt-1 text-[13px] italic text-white/35">
             length {data.length_source}
           </p>
 
@@ -114,7 +112,7 @@ export default function RunningOrder() {
               <div key={`seed-${entry.position}`} className="flex items-center gap-3">
                 <span className="w-6 shrink-0 text-right font-mono text-xs text-white/30">{entry.position}</span>
                 <span className="min-w-0 shrink grow-[12] basis-0 truncate text-sm text-white/45">{entry.song_name}</span>
-                <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-white/25">given</span>
+                <span className="text-[13px] font-medium shrink-0 text-white/40">given</span>
               </div>
             ))}
             {data.order.map((entry, i) => (
@@ -138,7 +136,7 @@ export default function RunningOrder() {
             ))}
           </div>
 
-          <p className="mt-6 border-t border-white/10 pt-4 font-mono text-[11px] leading-relaxed text-white/40">
+          <p className="mt-6 border-t border-white/10 pt-4 text-[13px] leading-relaxed text-white/40">
             The first {data.seed_length} {data.seed_length === 1 ? "song is" : "songs are"} not a
             prediction: {data.seed_source}. Everything below it is the model continuing from there,
             feeding each of its own guesses back in. Confidence is the chosen song's share of the
@@ -148,10 +146,10 @@ export default function RunningOrder() {
 
         <div className="space-y-6">
           <Card className="anim-fade-in-up" style={{ animationDelay: "0.1s" }}>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+            <p className="text-[13px] font-medium text-white/55">
               How much the opening songs are worth
             </p>
-            <p className="mt-2 font-mono text-[11px] leading-relaxed text-white/45">
+            <p className="mt-2 text-[13px] leading-relaxed text-white/45">
               Share of the remaining set the model gets right, on {data.accuracy.test_shows} held-out
               shows, against the flattest baseline there is: the most played songs, the same list
               every night.
@@ -159,7 +157,7 @@ export default function RunningOrder() {
             <div className="mt-5">
               <SeedSweep runs={data.accuracy.runs} />
             </div>
-            <p className="mt-5 border-t border-white/10 pt-4 font-mono text-[11px] leading-relaxed text-white/40">
+            <p className="mt-5 border-t border-white/10 pt-4 text-[13px] leading-relaxed text-white/40">
               {data.accuracy.model_beats_baselines_from_seed === null ? (
                 <>
                   The model does not beat the static list at any seed length tested. It is shown here
@@ -181,7 +179,7 @@ export default function RunningOrder() {
           </Card>
 
           <Card className="anim-fade-in-up" style={{ animationDelay: "0.15s" }}>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+            <p className="text-[13px] font-medium text-white/55">
               This prediction, measured as it runs
             </p>
             <div className="mt-4 grid grid-cols-2 gap-4">
@@ -189,7 +187,7 @@ export default function RunningOrder() {
                 <p className="font-display text-4xl font-bold text-cream">
                   {percent(production.model.songs_included)}
                 </p>
-                <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-white/35">
+                <p className="text-[13px] font-medium mt-1 text-white/50">
                   songs in the set
                 </p>
               </div>
@@ -197,18 +195,18 @@ export default function RunningOrder() {
                 <p className="font-display text-4xl font-bold text-cream">
                   {percent(production.model.exact_position)}
                 </p>
-                <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-white/35">
+                <p className="text-[13px] font-medium mt-1 text-white/50">
                   at the exact slot
                 </p>
               </div>
             </div>
-            <p className="mt-4 font-mono text-[11px] leading-relaxed text-white/40">
+            <p className="mt-4 text-[13px] leading-relaxed text-white/40">
               Scored the way the page actually works, over {production.shows_scored} held-out shows:
               seeded with the previous night's opening rather than tonight's, and with those seeded
               songs counted as guesses like any other. Against{" "}
               {percent(production.baseline.songs_included)} for the static most-played list.
             </p>
-            <p className="mt-3 font-mono text-[11px] leading-relaxed text-white/40">
+            <p className="mt-3 text-[13px] leading-relaxed text-white/40">
               The whole thing rests on one assumption, so here it is: consecutive shows open with the
               same song {percent(production.opener_repeat_rate)} of the time. When they do, the set
               below is close to right. When they do not, the model is continuing a night that never

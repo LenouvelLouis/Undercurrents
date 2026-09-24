@@ -23,9 +23,17 @@ export interface Photo {
 
 // Every photograph in the archive, captioned once here so the same picture is never
 // described two different ways on two different pages. Pages pull from this registry
-// instead of importing image files directly, which is also what keeps the spread below
-// honest: it is easy to see, in one place, that no page repeats a photo and that the
-// album sleeves are no longer standing in as filler.
+// instead of importing image files directly.
+//
+// Photographs are deliberately reused across pages: there are thirteen of them and far more
+// slots than that, so most appear on three to five pages. What is avoided is the same photo
+// twice on one screen, which reads as a mistake rather than as a motif.
+//
+// One thing to know before picking a photo for a new slot: every source file here is between
+// 720 and 1080 pixels wide. That is ample for a chip or a panel, which never render wider than
+// about 700px, and thin for anything full-bleed. `guitaristConfetti`, `backyardPortrait` and
+// `silhouetteLasers` are the only ones at roughly 1080px, so a full-viewport slot should take
+// one of those. The landing hero does.
 export const PHOTOS = {
   guitaristConfetti: {
     src: guitaristConfetti,

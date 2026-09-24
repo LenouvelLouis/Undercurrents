@@ -27,9 +27,12 @@ CREATE TABLE IF NOT EXISTS venues (
     city      TEXT,
     state     TEXT,
     country   TEXT,
-    capacity  INTEGER,
-    latitude  REAL,
-    longitude REAL
+    capacity    INTEGER,
+    latitude    REAL,
+    longitude   REAL,
+    venue_kind  TEXT,
+    is_outdoor  INTEGER,
+    opened_year INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS setlists (
@@ -44,8 +47,20 @@ CREATE TABLE IF NOT EXISTS setlists (
 );
 
 CREATE TABLE IF NOT EXISTS songs (
-    id    INTEGER PRIMARY KEY,
-    name  TEXT NOT NULL UNIQUE
+    id                       INTEGER PRIMARY KEY,
+    name                     TEXT NOT NULL UNIQUE,
+    mbid                     TEXT,
+    canonical_song_id        INTEGER REFERENCES songs(id),
+    excluded_from_clustering INTEGER NOT NULL DEFAULT 0,
+    release_date             TEXT,
+    duration_ms              INTEGER,
+    genre_tags               TEXT,
+    bpm                      REAL,
+    musical_key              TEXT,
+    musical_scale            TEXT,
+    loudness                 REAL,
+    danceability             REAL,
+    audio_recording_mbid     TEXT
 );
 
 CREATE TABLE IF NOT EXISTS setlist_songs (
@@ -58,6 +73,9 @@ CREATE TABLE IF NOT EXISTS setlist_songs (
     cover_artist_id  TEXT REFERENCES artists(id),
     is_tape          INTEGER NOT NULL DEFAULT 0,
     info             TEXT,
+    set_name         TEXT,
+    guest_name       TEXT,
+    guest_mbid       TEXT,
     PRIMARY KEY (setlist_id, position)
 );
 
