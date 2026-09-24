@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:static": "tsc -b && vite build --mode static",
+    "export:data": "cd .. && uv run python -m undercurrents.export_static",
     "lint": "oxlint",
     "preview": "vite preview",
     "design:theme": "node scripts/gen-marver-theme.mjs",

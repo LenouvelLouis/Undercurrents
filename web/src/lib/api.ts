@@ -3,10 +3,15 @@
 // share one request. Failed requests are dropped from the cache so they can be retried.
 const cache = new Map<string, Promise<unknown>>();
 
+// The hosted site has no Python server: `npm run build:static` sets VITE_STATIC_API and every
+// request is read from the JSON files `undercurrents.export_static` writes to public/data.
+const STATIC = import.meta.env.VITE_STATIC_API === "1";
+const url = (path: string) => (STATIC ? `/data${path}.json` : `/api${path}`);
+
 function get<T>(path: string): Promise<T> {
   const hit = cache.get(path);
   if (hit) return hit as Promise<T>;
-  const request = fetch(`/api${path}`).then((response) => {
+  const request = fetch(url(path)).then((response) => {
     if (!response.ok) throw new Error(`GET ${path} failed: ${response.status}`);
     return response.json() as Promise<T>;
   });

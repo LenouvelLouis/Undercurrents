@@ -120,6 +120,28 @@ frozen models before restarting the API so predictions reflect it:
 uv run python -m undercurrents.prediction.cli train-models
 ```
 
+## Hosting (Cloudflare Workers, static assets)
+
+The front end only issues parameterless GETs and the models are frozen, so every API response
+is a pure function of the database. The public site is therefore plain files: no Python server.
+
+```bash
+cd web
+npm run export:data     # writes web/public/data/**.json (about 1,700 files, 6 MB)
+npm run build:static    # same build, but the app reads /data/<path>.json instead of /api/<path>
+```
+
+`export:data` runs `undercurrents.export_static`, which walks every GET route of the API (read
+from its OpenAPI schema) and every id behind the `{param}` routes. A test fails if a new
+parameterised route has no id source. `data/` itself stays out of git; the exported JSON under
+`web/public/data/` is committed, since it is exactly what the site shows.
+
+A Cloudflare Worker (static assets only, configured in `web/wrangler.jsonc`) is connected to the
+GitHub repo through Workers Builds, so every push to `main` rebuilds and deploys. Build settings:
+path `web`, build command `npm run build:static`, deploy command `npx wrangler deploy`. Node 22
+is pinned by `web/.nvmrc`. After a data
+refresh: rerun the pipeline, `train-models`, `npm run export:data`, then commit and push.
+
 ## Derived feature tables
 
 Two tables of per-song and per-show features, recomputed from the ingested rows:
