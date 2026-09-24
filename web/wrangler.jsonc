@@ -1,11 +1,7 @@
-// Cloudflare Workers deploy of the static site (Workers Builds runs `npm run build:static`
-// then `npx wrangler deploy` from this directory). No Worker script: only static assets.
+// Cloudflare Pages project (Git integration builds `npm run build:static` from this directory
+// and serves `dist` on undercurrents.pages.dev). Static assets only, no Functions.
 {
   "name": "undercurrents",
   "compatibility_date": "2026-09-01",
-  "assets": {
-    // Hash routing: every page is index.html + #/..., so no SPA fallback is needed and a
-    // missing /data/*.json is a real 404 instead of index.html served as JSON.
-    "directory": "./dist"
-  }
+  "pages_build_output_dir": "./dist"
 }

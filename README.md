@@ -120,7 +120,7 @@ frozen models before restarting the API so predictions reflect it:
 uv run python -m undercurrents.prediction.cli train-models
 ```
 
-## Hosting (Cloudflare Workers, static assets)
+## Hosting (Cloudflare Pages, static)
 
 The front end only issues parameterless GETs and the models are frozen, so every API response
 is a pure function of the database. The public site is therefore plain files: no Python server.
@@ -136,10 +136,10 @@ from its OpenAPI schema) and every id behind the `{param}` routes. A test fails 
 parameterised route has no id source. `data/` itself stays out of git; the exported JSON under
 `web/public/data/` is committed, since it is exactly what the site shows.
 
-A Cloudflare Worker (static assets only, configured in `web/wrangler.jsonc`) is connected to the
-GitHub repo through Workers Builds, so every push to `main` rebuilds and deploys. Build settings:
-path `web`, build command `npm run build:static`, deploy command `npx wrangler deploy`. Node 22
-is pinned by `web/.nvmrc`. After a data
+Cloudflare Pages is connected to the GitHub repo (Git integration), so every push to `main`
+rebuilds and deploys to https://undercurrents.pages.dev. Project settings: root directory
+`web`, build command `npm run build:static`, output directory `dist` (also declared in
+`web/wrangler.jsonc`). Node 22 is pinned by `web/.nvmrc`. After a data
 refresh: rerun the pipeline, `train-models`, `npm run export:data`, then commit and push.
 
 ## Derived feature tables
