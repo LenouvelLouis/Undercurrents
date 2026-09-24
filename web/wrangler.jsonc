@@ -1,0 +1,11 @@
+// Cloudflare Workers deploy of the static site (Workers Builds runs `npm run build:static`
+// then `npx wrangler deploy` from this directory). No Worker script: only static assets.
+{
+  "name": "undercurrents",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    // Hash routing: every page is index.html + #/..., so no SPA fallback is needed and a
+    // missing /data/*.json is a real 404 instead of index.html served as JSON.
+    "directory": "./dist"
+  }
+}
