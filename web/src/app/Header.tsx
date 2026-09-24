@@ -2,7 +2,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import Equalizer from "./Equalizer";
 import Logo from "./Logo";
-import SoundToggle from "./SoundToggle";
 import { SIDES, type RouteDef } from "./routes";
 
 interface HeaderProps {
@@ -54,7 +53,6 @@ export default function Header({ current, menuOpen, onMenu, onSearch, onHome }: 
       </AnimatePresence>
 
       <div className="pointer-events-auto flex items-center gap-2">
-        <SoundToggle />
         <button
           type="button"
           onClick={onSearch}

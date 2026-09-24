@@ -61,8 +61,6 @@ def test_overview_returns_expected_shape(tmp_conn):
         "venues_mapped",
         "countries",
         "setlist_clusters",
-        "setlist_accuracy",
-        "length_mae_songs",
     }
     assert body["concerts_logged"] == 15
     assert body["venues_mapped"] == 1
@@ -71,19 +69,7 @@ def test_overview_returns_expected_shape(tmp_conn):
     assert body["years_end"] == 2020
 
 
-def test_overview_setlist_accuracy_is_a_real_probability(tmp_conn):
-    _seed(tmp_conn)
-    client = _client_with(tmp_conn)
-
-    body = client.get("/api/stats/overview").json()
-
-    assert body["setlist_accuracy"] is not None
-    assert 0.0 <= body["setlist_accuracy"] <= 1.0
-    assert body["length_mae_songs"] is not None
-    assert body["length_mae_songs"] >= 0.0
-
-
-def test_overview_insufficient_data_returns_none_metrics(tmp_conn):
+def test_overview_answers_on_a_tiny_dataset(tmp_conn):
     _seed(tmp_conn, n=3)
     client = _client_with(tmp_conn)
 
@@ -98,8 +84,4 @@ def test_overview_insufficient_data_returns_none_metrics(tmp_conn):
         "venues_mapped",
         "countries",
         "setlist_clusters",
-        "setlist_accuracy",
-        "length_mae_songs",
     }
-    assert body["setlist_accuracy"] is None
-    assert body["length_mae_songs"] is None

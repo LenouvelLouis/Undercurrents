@@ -204,12 +204,7 @@ export default function Landing({ overview, navigate }: LandingProps) {
           >
             <span className="text-white"><CountUp value={overview.concerts_logged} /> nights</span> in{" "}
             <span className="text-white"><CountUp value={overview.venues_mapped} /> rooms</span>, sorted into{" "}
-            <span className="font-serif italic text-white"><CountUp value={overview.setlist_clusters} /> kinds of night</span>. Asked to
-            name as many songs as a held-out show really had, the model gets{" "}
-            <span className="bg-gradient-to-r from-violet-light to-ember-light bg-clip-text text-transparent">
-              <CountUp value={Math.round((overview.setlist_accuracy ?? 0) * 100)} suffix="%" />
-            </span>{" "}
-            of them.
+            <span className="font-serif italic text-white"><CountUp value={overview.setlist_clusters} /> kinds of night</span>.
           </motion.p>
         </section>
       )}

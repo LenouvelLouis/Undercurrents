@@ -298,3 +298,19 @@ existing capacity query. The type resolves for 126 venues against capacity's 124
 not better covered as expected, but it carries the distinction that makes the weather usable
 at all: 41 of the typed venues are outdoors. On the outdoor shows measured so far, rain makes
 no difference to setlist length, and the sample is far too small to conclude otherwise.
+
+## Shows, records, show types and listening
+
+Four more enrichment steps, each safe to re-run:
+
+```bash
+uv run python -m undercurrents.clustering.albums        # song -> record, MusicBrainz release groups
+uv run python -m undercurrents.clustering.popularity    # ListenBrainz listeners per song
+uv run python -m undercurrents.derived.cli build        # also rebuilds show_format (festival / headline / DJ set / TV / incomplete)
+uv run python -m undercurrents.prediction.cli train-models --with-sequence   # also writes replay.json and show_type_backtest.json
+```
+
+- **Replay** (`prediction/replay.py`): the setlist model walked forward over the archive, refitted every 25 shows on earlier shows only, after a 60-show warm-up. It feeds the Shows explorer ("what the model said the night before") and the Model Health page (calibration, Brier score, accuracy by year against a popularity baseline). The frozen production model is never used to grade past shows.
+- **Records** (`clustering/albums.py`): only original editions count, so deluxe, Japanese and anniversary bonus tracks do not pull songs into the wrong era; a song found only on a reissue is typed `Bonus`. Songs left unmatched are unreleased jams and covers.
+- **Show types** (`derived/show_format.py`): an estimate, not a label. Every festival call lists the signals behind it (venue name and type, the setlist note, a short set next to nearby shows, a two-weekend repeat). `prediction/show_type.py` then predicts whether the next show is a festival slot, picking between a base rate, "same as last show" and a logistic regression on validation folds.
+- **Listening** (`clustering/popularity.py`): ListenBrainz users are a self-selected sample that leans towards long-time listeners, so these counts rank songs relative to each other and are not streaming figures.

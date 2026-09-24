@@ -49,13 +49,16 @@ export default function TrackList({ side, current, onPick, delay = 0, size = "xl
               <motion.a
                 href={`#${pathOf(t)}`}
                 onClick={onPick}
-                onPointerEnter={() => setHover(t)}
+                onPointerEnter={() => {
+                  setHover(t);
+                  t.preload().catch(() => {});
+                }}
                 onFocus={() => setHover(t)}
                 aria-current={active ? "page" : undefined}
                 className="group/row relative flex items-baseline gap-4 py-2.5 outline-none transition-opacity duration-300 group-hover/list:opacity-35 hover:!opacity-100 focus-visible:!opacity-100 focus-visible:ring-2 focus-visible:ring-white/60 sm:gap-6"
                 initial={{ y: "110%" }}
                 animate={{ y: "0%" }}
-                transition={{ duration: 0.7, delay: delay + i * 0.035, ease }}
+                transition={{ duration: 0.35, delay: delay + i * 0.012, ease }}
               >
                 <span className={`w-8 shrink-0 font-mono text-xs tabular-nums ${active ? accentText[s.accent] : "text-white/40"}`}>{t.code}</span>
                 <span

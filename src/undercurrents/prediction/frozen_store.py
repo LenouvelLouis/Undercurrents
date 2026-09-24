@@ -13,7 +13,9 @@ from undercurrents.prediction import (
     next_show_date,
     next_show_location,
     position,
+    replay,
     running_order,
+    show_type,
     setlist_length,
 )
 
@@ -43,6 +45,10 @@ _BACKTESTS = {
     "encore": (encore, "encore_backtest.json"),
     "comeback": (comeback, "comeback_backtest.json"),
     "running_order": (running_order, "running_order_backtest.json"),
+    # walk-forward replay of the setlist model over the whole archive (concert explorer and
+    # model-health page)
+    "replay": (replay, "replay.json"),
+    "show_type": (show_type, "show_type_backtest.json"),
 }
 
 

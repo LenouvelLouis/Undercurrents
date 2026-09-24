@@ -5,7 +5,7 @@ import Header from "./app/Header";
 import LiquidField from "./app/LiquidField";
 import Menu from "./app/Menu";
 import MeltFilter from "./app/MeltFilter";
-import { findRoute } from "./app/routes";
+import { findRoute, preloadAllRoutes } from "./app/routes";
 import Shell from "./app/Shell";
 import { useHashRoute } from "./app/useHashRoute";
 import { api } from "./lib/api";
@@ -20,6 +20,8 @@ export default function App() {
 
   useEffect(() => {
     api.overview().then(setOverview).catch(() => {});
+    const id = window.setTimeout(preloadAllRoutes, 1500);
+    return () => window.clearTimeout(id);
   }, []);
 
   useEffect(() => {

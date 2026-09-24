@@ -276,3 +276,47 @@ html {
     display: none;
   }
 }
+
+/* Venues played in the year the map timeline is showing breathe gently. */
+.venue-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: venue-pulse 1.8s ease-in-out infinite;
+}
+@keyframes venue-pulse {
+  0%, 100% { transform: scale(0.85); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .venue-pulse { animation: none; }
+}
+
+/* Tour legs draw themselves in, one after another. */
+/* pathLength="1" on each leg, so the dash runs over the leg's real length whatever its size */
+.route-leg {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: route-draw 1.6s ease-out forwards;
+}
+@keyframes route-draw {
+  to { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-leg { animation: none; stroke-dashoffset: 0; }
+}
+
+/* A stop on the year's route lights up when the line reaches it. */
+.route-stop {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: route-stop 0.6s ease-out forwards;
+}
+@keyframes route-stop {
+  0% { opacity: 0; transform: scale(0.2); }
+  60% { opacity: 1; transform: scale(1.6); }
+  100% { opacity: 0.85; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-stop { animation: none; opacity: 0.85; }
+}

@@ -1,5 +1,6 @@
 import json
 import os
+import sqlite3
 from datetime import date as date_type
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -340,3 +341,66 @@ def get_benchmarks():
             detail="No benchmark run found. Run: uv run python -m undercurrents.benchmarks.cli run",
         )
     return results
+
+
+@router.get("/show-type")
+def get_show_type(conn=Depends(get_conn)):
+    """Festival slot or headline show next, with the method chosen on validation folds and
+    the test score it earned. Needs `show_format` (derived.cli build)."""
+    from undercurrents.prediction import show_type
+
+    try:
+        backtest = store.get_backtest("show_type", conn)
+    except (ValueError, sqlite3.OperationalError) as error:
+        raise HTTPException(status_code=503, detail=f"Show types not available yet: {error}")
+    prediction = show_type.predict_next(conn, backtest["chosen_method"])
+    return {**prediction, "accuracy": backtest}
+
+
+@router.get("/model-health")
+def get_model_health(conn=Depends(get_conn)):
+    """How honest the setlist model's probabilities are, from the walk-forward replay: a
+    calibration table, the Brier score, accuracy per show and per year next to a popularity
+    baseline. Every number comes from shows the model had not been trained on."""
+    try:
+        replay = store.get_backtest("replay", conn)
+    except ValueError as error:
+        raise HTTPException(status_code=503, detail=str(error))
+    shows = replay["shows"]
+    # nights with a thin recorded setlist (TV spots, partial transcriptions) swing between 0%
+    # and 100% on one song and say nothing about the model, so the extremes skip them
+    full = [s for s in shows if s["played"] >= 8]
+    worst = sorted(full, key=lambda s: s["accuracy"])[:5]
+    best_margin = sorted(full, key=lambda s: s["accuracy"] - s["baseline_accuracy"], reverse=True)[:5]
+    unseen_by_year: dict[str, list[int]] = {}
+    for s in shows:
+        tally = unseen_by_year.setdefault(s["event_date"][:4], [0, 0])
+        tally[0] += len(s["unseen_songs"])
+        tally[1] += s["played"]
+    by_year = {
+        year: {**stats, "new_song_share": round(unseen_by_year[year][0] / unseen_by_year[year][1], 4) if unseen_by_year[year][1] else 0.0}
+        for year, stats in replay["by_year"].items()
+    }
+    return {
+        "method": replay["method"],
+        "refit_every": replay["refit_every"],
+        "warm_up_shows": replay["warm_up_shows"],
+        "shows_scored": replay["shows_scored"],
+        "mean_accuracy": replay["mean_accuracy"],
+        "mean_baseline_accuracy": replay["mean_baseline_accuracy"],
+        "brier_score": replay["brier_score"],
+        "calibration": replay["calibration"],
+        "by_year": by_year,
+        "series": [
+            {"setlist_id": s["setlist_id"], "event_date": s["event_date"], "accuracy": s["accuracy"], "baseline": s["baseline_accuracy"]}
+            for s in shows
+        ],
+        "hardest_nights": [
+            {"setlist_id": s["setlist_id"], "event_date": s["event_date"], "accuracy": s["accuracy"], "played": s["played"], "unseen_songs": len(s["unseen_songs"])}
+            for s in worst
+        ],
+        "biggest_wins_over_baseline": [
+            {"setlist_id": s["setlist_id"], "event_date": s["event_date"], "accuracy": s["accuracy"], "baseline": s["baseline_accuracy"]}
+            for s in best_margin
+        ],
+    }

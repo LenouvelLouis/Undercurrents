@@ -1,9 +1,18 @@
-async function get<T>(path: string): Promise<T> {
-  const response = await fetch(`/api${path}`);
-  if (!response.ok) {
-    throw new Error(`GET ${path} failed: ${response.status}`);
-  }
-  return response.json() as Promise<T>;
+// The archive does not change while someone browses it, so every GET is kept in memory for
+// the visit: going back to a page is instant, and two components asking for the same data
+// share one request. Failed requests are dropped from the cache so they can be retried.
+const cache = new Map<string, Promise<unknown>>();
+
+function get<T>(path: string): Promise<T> {
+  const hit = cache.get(path);
+  if (hit) return hit as Promise<T>;
+  const request = fetch(`/api${path}`).then((response) => {
+    if (!response.ok) throw new Error(`GET ${path} failed: ${response.status}`);
+    return response.json() as Promise<T>;
+  });
+  cache.set(path, request);
+  request.catch(() => cache.delete(path));
+  return request;
 }
 
 import type {
@@ -36,14 +45,30 @@ import type {
   Overview,
   SetlistLength,
   SetlistTrend,
+  Eras,
+  ModelHealth,
+  Popularity,
+  ShowDetail,
+  ShowFormats,
+  ShowTypePrediction,
+  ShowSummary,
   Song,
   SongPrediction,
   SongRole,
   Transitions,
   Venue,
+  VenueDetail,
 } from "./types";
 
 export const api = {
+  shows: () => get<ShowSummary[]>("/shows"),
+  eras: () => get<Eras>("/analysis/eras"),
+  modelHealth: () => get<ModelHealth>("/predictions/model-health"),
+  popularity: () => get<Popularity>("/analysis/popularity"),
+  venue: (id: string) => get<VenueDetail>(`/analysis/venues/${id}`),
+  showType: () => get<ShowTypePrediction>("/predictions/show-type"),
+  showFormats: () => get<ShowFormats>("/analysis/show-formats"),
+  show: (id: string) => get<ShowDetail>(`/shows/${id}`),
   overview: () => get<Overview>("/stats/overview"),
   songs: () => get<Song[]>("/songs"),
   nextSetlist: () => get<SongPrediction[]>("/predictions/next-setlist"),

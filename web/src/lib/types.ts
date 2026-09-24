@@ -5,8 +5,6 @@ export interface Overview {
   venues_mapped: number;
   countries: number;
   setlist_clusters: number;
-  setlist_accuracy: number | null;
-  length_mae_songs: number | null;
 }
 
 export interface SongPrediction {
@@ -50,6 +48,21 @@ export interface Venue {
   show_count: number;
   capacity: number | null;
   last_visited: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  kind?: string | null;
+  is_outdoor?: boolean | null;
+  first_visited?: string | null;
+  years?: number[];
+}
+
+export interface VenueDetail {
+  id: string;
+  name: string;
+  city: string | null;
+  country: string | null;
+  shows: { id: string; event_date: string; tour: string | null; songs: number }[];
+  top_songs: { name: string; plays: number }[];
 }
 
 export interface SetlistTrend {
@@ -475,4 +488,117 @@ export interface WeatherReport {
   by_venue_kind: WeatherSplit[];
   outdoor_wet_vs_dry: { condition: string; shows: number; avg_songs: number | null }[];
   caveat: string;
+}
+
+export interface ShowSummary {
+  id: string;
+  event_date: string;
+  venue_id?: string;
+  venue: string | null;
+  city: string | null;
+  country: string | null;
+  tour: string | null;
+  songs: number;
+  replay_accuracy: number | null;
+}
+
+export interface ShowSong {
+  position: number;
+  set_name: string | null;
+  song_id: number;
+  name: string | null;
+  is_encore: boolean;
+  is_cover: boolean;
+  is_tape: boolean;
+  cover_artist: string | null;
+  guest: string | null;
+  info: string | null;
+  album: string | null;
+  before_release: boolean;
+  note_flags: string[];
+  rarity: { prior_plays: number; shows_since_last: number | null; first_time: boolean; prior_play_rate: number | null } | null;
+  predicted_probability: number | null;
+  predicted_rank: number | null;
+}
+
+export interface ShowDetail {
+  id: string;
+  event_date: string;
+  url: string | null;
+  info: string | null;
+  tour: string | null;
+  venue: { id: string; name: string; city: string; country: string; capacity: number | null; kind: string | null; is_outdoor: boolean | null };
+  weather: { temp_max_c: number | null; temp_min_c: number | null; precipitation_mm: number | null; wind_max_kmh: number | null } | null;
+  derived: { known_duration_ms: number | null; novelty_rate: number | null; days_since_previous: number | null; travel_km: number | null } | null;
+  format: { kind: string; signals: string[] } | null;
+  songs: ShowSong[];
+  replay: {
+    accuracy: number;
+    baseline_accuracy: number;
+    hits: number;
+    played: number;
+    trained_through: string;
+    trained_on_shows: number;
+    unseen_songs: string[];
+    top: { song_id: number; name: string | null; probability: number; played: boolean }[];
+  } | null;
+  previous_id: string | null;
+  next_id: string | null;
+}
+
+export interface Eras {
+  years: { year: number; performances: number; shares: Record<string, number> }[];
+  records: { name: string; kind: "album" | "other"; release_date: string | null }[];
+  coverage: { performances: number; with_album: number } | null;
+  source?: string;
+}
+
+export interface ShowTypePrediction {
+  probability_festival: number;
+  reference_month: string;
+  last_show: { date: string; festival: boolean } | null;
+  songs_if_festival: number | null;
+  songs_if_headline: number | null;
+  expected_songs: number;
+  accuracy: {
+    metric: string;
+    chosen_method: string;
+    selection: { leader: string; leader_mean: number; chosen_mean: number; reason: string };
+    validation_folds: number;
+    fold_shows: number;
+    test_shows: number;
+    methods: { key: string; name: string; fold_scores: number[]; validation_score: number; test_score: number; chosen: boolean }[];
+    festival_share: number;
+    classified_shows: number;
+  };
+}
+
+export interface ShowFormats {
+  counts: Record<string, number>;
+  by_year: { year: number; festival: number; headline: number; other: number }[];
+  songs_by_format: Record<string, number | null>;
+  festivals: { setlist_id: string; event_date: string; venue: string; city: string; country: string; songs: number; score: number; signals: string[] }[];
+  method: string;
+}
+
+export interface ModelHealth {
+  method: string;
+  refit_every: number;
+  warm_up_shows: number;
+  shows_scored: number;
+  mean_accuracy: number;
+  mean_baseline_accuracy: number;
+  brier_score: number;
+  calibration: { bin_start: number; bin_end: number; count: number; mean_predicted: number | null; observed_rate: number | null }[];
+  by_year: Record<string, { shows: number; accuracy: number; baseline: number; new_song_share: number }>;
+  series: { setlist_id: string; event_date: string; accuracy: number; baseline: number }[];
+  hardest_nights: { setlist_id: string; event_date: string; accuracy: number; played: number; unseen_songs: number }[];
+  biggest_wins_over_baseline: { setlist_id: string; event_date: string; accuracy: number; baseline: number }[];
+}
+
+export interface Popularity {
+  songs: { song_id: number; name: string; album: string | null; listens: number; listeners: number; live_rate: number; recent_live_rate: number; last_played: string | null }[];
+  recent_window: number;
+  shows_with_setlist?: number;
+  source?: string;
 }

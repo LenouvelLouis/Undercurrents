@@ -51,10 +51,9 @@ export default function Shell({ route, navigate }: ShellProps) {
           className={`pointer-events-none fixed inset-0 z-[45] flex items-end bg-gradient-to-br ${curtainTint[side.accent]} px-6 pb-12 sm:px-12`}
           initial={{ y: "100%" }}
           animate={{ y: ["100%", "0%", "0%", "-100%"] }}
-          transition={{ duration: 1.25, times: [0, 0.34, 0.62, 1], ease }}
-          onAnimationStart={() => window.setTimeout(() => window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }), 420)}
+          transition={{ duration: 0.7, times: [0, 0.4, 0.55, 1], ease }}
+          onAnimationStart={() => window.setTimeout(() => window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }), 280)}
         >
-          <Waveform className="absolute inset-x-0 top-1/3 h-40" traces={3} from={side.accent === "violet" ? "#e2a6ff" : "#ff9270"} to={side.accent === "violet" ? "#a531d6" : "#f0c581"} />
           <div className="relative">
             <p className={`font-mono text-sm ${accentText[side.accent]}`}>
               {side.sleeve}, track {route.code.slice(1)}
@@ -68,9 +67,9 @@ export default function Shell({ route, navigate }: ShellProps) {
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={key}
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.55, ease: soft } }}
-            exit={{ opacity: 0, transition: { duration: 0.35 } }}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0, transition: { duration: 0.45, delay: 0.2, ease: soft } }}
+            exit={{ opacity: 0, transition: { duration: 0.12 } }}
           >
             {/* Oversized outline track code behind the page title */}
             <div aria-hidden className="pointer-events-none absolute right-0 top-16 -z-[1] select-none sm:right-6">
@@ -90,6 +89,7 @@ export default function Shell({ route, navigate }: ShellProps) {
             {/* Next track: the whole width is the link */}
             <a
               href={`#${pathOf(next)}`}
+              onPointerEnter={() => next.preload().catch(() => {})}
               className="group relative mt-6 block overflow-hidden pt-4 outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
               <span className="flex items-center justify-between text-sm text-white/45">

@@ -28,10 +28,17 @@ def _era_for_year(year: int) -> str:
 @router.get("/venues")
 def get_venues(conn=Depends(get_conn)):
     db.ensure_venues_capacity_column(conn)
+    db.ensure_venues_coordinate_columns(conn)
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(venues)")}
+    kind = "v.venue_kind" if "venue_kind" in columns else "NULL"
+    outdoor = "v.is_outdoor" if "is_outdoor" in columns else "NULL"
     rows = conn.execute(
-        """
-        SELECT v.id, v.name, v.city, v.country, v.capacity,
-               COUNT(s.id) AS show_count, MAX(s.event_date) AS last_visited
+        f"""
+        SELECT v.id, v.name, v.city, v.country, v.capacity, v.latitude, v.longitude,
+               {kind} AS venue_kind, {outdoor} AS is_outdoor,
+               COUNT(s.id) AS show_count, MIN(s.event_date) AS first_visited,
+               MAX(s.event_date) AS last_visited,
+               GROUP_CONCAT(DISTINCT substr(s.event_date, 1, 4)) AS years
         FROM venues v
         LEFT JOIN setlists s ON s.venue_id = v.id
         GROUP BY v.id
@@ -46,10 +53,47 @@ def get_venues(conn=Depends(get_conn)):
             "country": row["country"],
             "show_count": row["show_count"],
             "capacity": row["capacity"],
+            "latitude": row["latitude"],
+            "longitude": row["longitude"],
+            "kind": row["venue_kind"],
+            "is_outdoor": None if row["is_outdoor"] is None else bool(row["is_outdoor"]),
+            "first_visited": row["first_visited"],
             "last_visited": row["last_visited"],
+            "years": sorted(int(y) for y in (row["years"] or "").split(",") if y),
         }
         for row in rows
     ]
+
+
+@router.get("/venues/{venue_id}")
+def get_venue(venue_id: str, conn=Depends(get_conn)):
+    """One room: every night played there and the songs it heard most, for the map popup."""
+    venue = conn.execute("SELECT id, name, city, country FROM venues WHERE id = ?", (venue_id,)).fetchone()
+    if venue is None:
+        raise HTTPException(status_code=404, detail="Unknown venue")
+    shows = conn.execute(
+        """
+        SELECT s.id, s.event_date, t.name AS tour,
+               (SELECT COUNT(*) FROM setlist_songs ss WHERE ss.setlist_id = s.id AND ss.is_tape = 0) AS songs
+        FROM setlists s LEFT JOIN tours t ON t.id = s.tour_id
+        WHERE s.venue_id = ? ORDER BY s.event_date DESC
+        """,
+        (venue_id,),
+    ).fetchall()
+    top_songs = conn.execute(
+        """
+        SELECT so.name, COUNT(*) AS plays
+        FROM setlist_songs ss JOIN setlists s ON s.id = ss.setlist_id JOIN songs so ON so.id = ss.song_id
+        WHERE s.venue_id = ? AND ss.is_tape = 0
+        GROUP BY so.id ORDER BY plays DESC, so.name LIMIT 5
+        """,
+        (venue_id,),
+    ).fetchall()
+    return {
+        **dict(venue),
+        "shows": [dict(r) for r in shows],
+        "top_songs": [dict(r) for r in top_songs],
+    }
 
 
 @router.get("/setlist-trend")
@@ -180,7 +224,7 @@ def _build_anecdotes(
         for flag, tag in SONG_FLAG_TAGS.items():
             if play.get(flag):
                 song_name = song_names.get(play["song_id"], "Unknown song")
-                description = play.get("info") or f"'{song_name}' — {tag}."
+                description = play.get("info") or f"'{song_name}': {tag}."
                 entries.append(
                     {
                         "date": event_dates.get(play["setlist_id"], ""),
@@ -192,7 +236,7 @@ def _build_anecdotes(
     for setlist in setlists_flagged:
         for flag, tag in SETLIST_FLAG_TAGS.items():
             if setlist.get(flag):
-                description = setlist.get("info") or f"Setlist — {tag}."
+                description = setlist.get("info") or f"Setlist: {tag}."
                 entries.append(
                     {
                         "date": event_dates.get(setlist["setlist_id"], ""),
@@ -230,7 +274,7 @@ def _compute_milestones(ordered_shows: list[dict]) -> list[dict]:
                 milestones.append(
                     {
                         "date": show["event_date"],
-                        "description": f"Longest setlist yet — {show['length']} songs.",
+                        "description": f"Longest setlist yet: {show['length']} songs.",
                     }
                 )
     return milestones
@@ -974,4 +1018,177 @@ def get_weather(conn=Depends(get_conn)):
             "City-level coordinates, and the outdoor split covers only the venues Wikidata "
             "could type. Indoor rows are a control, not a finding."
         ),
+    }
+
+
+@router.get("/eras")
+def get_eras(conn=Depends(get_conn)):
+    """Share of each record in the songs played, year by year. Albums come from MusicBrainz
+    (`clustering/albums.py`); a song with no release on file is counted as unreleased or
+    live-only, and covers are counted apart. Tapes are left out: they are not performances."""
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(songs)")}
+    if "album" not in existing:
+        return {"years": [], "records": [], "coverage": None}
+
+    rows = conn.execute(
+        """
+        SELECT substr(s.event_date, 1, 4) AS year, ss.is_cover, so.album, so.album_type, so.album_date
+        FROM setlist_songs ss
+        JOIN setlists s ON s.id = ss.setlist_id
+        JOIN songs so ON so.id = ss.song_id
+        WHERE ss.is_tape = 0
+        """
+    ).fetchall()
+
+    records: dict[str, dict] = {}
+    counts: dict[str, dict[str, int]] = {}
+    for r in rows:
+        if r["is_cover"]:
+            key = "Covers"
+        elif r["album"] is None:
+            key = "Unreleased or live-only"
+        elif r["album_type"] == "Album":
+            key = r["album"]
+        else:
+            key = "Singles, EPs and B-sides"
+        if key not in records:
+            date = r["album_date"] if r["album_type"] == "Album" else None
+            records[key] = {"name": key, "kind": "album" if r["album_type"] == "Album" and not r["is_cover"] else "other", "release_date": date}
+        counts.setdefault(r["year"], {})
+        counts[r["year"]][key] = counts[r["year"]].get(key, 0) + 1
+
+    order = sorted(
+        records.values(),
+        key=lambda rec: (rec["kind"] != "album", rec["release_date"] or "9999", rec["name"]),
+    )
+    years = []
+    for year in sorted(counts):
+        total = sum(counts[year].values())
+        years.append(
+            {
+                "year": int(year),
+                "performances": total,
+                "shares": {rec["name"]: round(counts[year].get(rec["name"], 0) / total, 4) for rec in order},
+            }
+        )
+    performances = len(rows)
+    with_album = sum(1 for r in rows if not r["is_cover"] and r["album"] is not None)
+    return {
+        "years": years,
+        "records": order,
+        "coverage": {"performances": performances, "with_album": with_album},
+        "source": "Albums: MusicBrainz release groups (official albums, EPs and singles; live, compilation and remix releases excluded).",
+    }
+
+
+@router.get("/show-formats")
+def get_show_formats(conn=Depends(get_conn)):
+    """The estimated kind of every night (see `derived/show_format.py`), with the signals
+    behind each festival call so the estimate can be checked by eye."""
+    import json as _json
+
+    try:
+        rows = conn.execute(
+            """
+            SELECT f.setlist_id, f.format, f.score, f.signals, s.event_date, v.name AS venue, v.city, v.country,
+                   (SELECT COUNT(*) FROM setlist_songs ss WHERE ss.setlist_id = s.id AND ss.is_tape = 0) AS songs
+            FROM show_format f JOIN setlists s ON s.id = f.setlist_id LEFT JOIN venues v ON v.id = s.venue_id
+            ORDER BY s.event_date
+            """
+        ).fetchall()
+    except Exception:
+        return {"counts": {}, "by_year": [], "songs_by_format": {}, "festivals": []}
+
+    counts: dict[str, int] = {}
+    by_year: dict[str, dict] = {}
+    songs: dict[str, list[int]] = {}
+    for r in rows:
+        counts[r["format"]] = counts.get(r["format"], 0) + 1
+        y = by_year.setdefault(r["event_date"][:4], {"festival": 0, "headline": 0, "other": 0})
+        y[r["format"] if r["format"] in ("festival", "headline") else "other"] += 1
+        songs.setdefault(r["format"], []).append(r["songs"])
+
+    def median(values):
+        values = sorted(values)
+        return values[len(values) // 2] if values else None
+
+    return {
+        "counts": counts,
+        "by_year": [{"year": int(y), **v} for y, v in sorted(by_year.items())],
+        "songs_by_format": {k: median(v) for k, v in songs.items()},
+        "festivals": [
+            {
+                "setlist_id": r["setlist_id"],
+                "event_date": r["event_date"],
+                "venue": r["venue"],
+                "city": r["city"],
+                "country": r["country"],
+                "songs": r["songs"],
+                "score": r["score"],
+                "signals": _json.loads(r["signals"]),
+            }
+            for r in reversed(rows)
+            if r["format"] == "festival"
+        ],
+        "method": "Estimated from venue name and type, outdoor flag, the setlist note, set length against nearby shows and two-weekend repeats. No ground truth exists; every call lists its signals.",
+    }
+
+
+@router.get("/popularity")
+def get_popularity(conn=Depends(get_conn)):
+    """Listening (ListenBrainz) against playing (the setlists), per original song. The live
+    rate is the share of recorded setlists that included the song, over the whole archive and
+    over the latest 60 shows. See `clustering/popularity.py` for what the listen counts are and
+    are not."""
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(songs)")}
+    if "listener_count" not in columns:
+        return {"songs": [], "recent_window": 0}
+    album = "so.album" if "album" in columns else "NULL"
+    shows = [
+        r["setlist_id"]
+        for r in conn.execute(
+            """
+            SELECT DISTINCT ss.setlist_id FROM setlist_songs ss JOIN setlists s ON s.id = ss.setlist_id
+            ORDER BY s.event_date
+            """
+        )
+    ]
+    recent = set(shows[-60:])
+    plays: dict[int, dict] = {}
+    for r in conn.execute(
+        """
+        SELECT ss.song_id, ss.setlist_id, s.event_date FROM setlist_songs ss JOIN setlists s ON s.id = ss.setlist_id
+        WHERE ss.is_cover = 0 AND ss.is_tape = 0
+        """
+    ):
+        p = plays.setdefault(r["song_id"], {"shows": set(), "last": None})
+        p["shows"].add(r["setlist_id"])
+        p["last"] = max(p["last"] or "", r["event_date"])
+    rows = conn.execute(
+        f"""
+        SELECT so.id, so.name, {album} AS album, so.listen_count, so.listener_count
+        FROM songs so WHERE so.listener_count IS NOT NULL AND so.listener_count > 0
+        """
+    ).fetchall()
+    songs = []
+    for r in rows:
+        p = plays.get(r["id"], {"shows": set(), "last": None})
+        songs.append(
+            {
+                "song_id": r["id"],
+                "name": r["name"],
+                "album": r["album"],
+                "listens": r["listen_count"],
+                "listeners": r["listener_count"],
+                "live_rate": round(len(p["shows"]) / len(shows), 4) if shows else 0.0,
+                "recent_live_rate": round(len(p["shows"] & recent) / len(recent), 4) if recent else 0.0,
+                "last_played": p["last"],
+            }
+        )
+    songs.sort(key=lambda x: -x["listeners"])
+    return {
+        "songs": songs,
+        "recent_window": len(recent),
+        "shows_with_setlist": len(shows),
+        "source": "ListenBrainz top recordings for the artist (distinct listeners per song; remixes, covers and live versions excluded). A self-selected sample that leans towards long-time listeners.",
     }

@@ -4,30 +4,22 @@ import PhotoChip from "../../components/PhotoChip";
 import PhotoPanel from "../../components/PhotoPanel";
 import { api } from "../../lib/api";
 import { PHOTOS } from "../../lib/photos";
-import type { Overview, SetlistDuration, SetlistLength } from "../../lib/types";
+import type { SetlistDuration, SetlistLength } from "../../lib/types";
 
 const TICKS = [0, 5, 10, 15, 20, 25, 30, 35, 40];
 
 export default function ConcertLength() {
   const [length, setLength] = useState<SetlistLength | null>(null);
-  const [overview, setOverview] = useState<Overview | null>(null);
   const [duration, setDuration] = useState<SetlistDuration | null>(null);
 
   useEffect(() => {
     api.setlistLength().then(setLength).catch(() => {});
-    api.overview().then(setOverview).catch(() => {});
     api.setlistDuration().then(setDuration).catch(() => {});
   }, []);
 
   const predicted = length?.predicted_songs ?? null;
-  // The model's real, already-computed mean absolute error (same figure quoted in the
-  // footer stat bar) doubles as an honest "typical range" around the point estimate,
-  // rather than inventing a spread the API never reported.
-  const mae = overview?.length_mae_songs ?? null;
-  const scaleMax = Math.max(...TICKS, predicted !== null ? Math.ceil((predicted + (mae ?? 0)) * 1.3) : 0);
+  const scaleMax = Math.max(...TICKS, predicted !== null ? Math.ceil(predicted * 1.3) : 0);
   const markerPct = predicted !== null ? Math.min(100, (predicted / scaleMax) * 100) : 0;
-  const lowPct = predicted !== null && mae !== null ? Math.max(0, ((predicted - mae) / scaleMax) * 100) : markerPct;
-  const highPct = predicted !== null && mae !== null ? Math.min(100, ((predicted + mae) / scaleMax) * 100) : markerPct;
 
   return (
     <div>
@@ -50,9 +42,6 @@ export default function ConcertLength() {
           <div className="pointer-events-none absolute -bottom-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-violet/25 blur-3xl" />
           <span className="relative font-display text-[9rem] font-bold leading-none">{predicted ?? "N/A"}</span>
           <span className="text-sm font-medium relative mt-3 text-white/50">songs (mean)</span>
-          {mae !== null && (
-            <span className="relative mt-2 font-mono text-xs text-white/35">± {mae} songs, mean absolute error</span>
-          )}
         </Card>
 
         <PhotoPanel
@@ -67,12 +56,6 @@ export default function ConcertLength() {
         <Card className="anim-fade-in-up col-span-6 flex min-h-[26rem] flex-col justify-center lg:col-span-3" style={{ animationDelay: "0.1s" }}>
           <div className="text-sm font-medium text-white/55">Where it lands on the scale</div>
           <div className="relative mt-14 h-3 rounded-full bg-white/5">
-            {mae !== null && (
-              <div
-                className="absolute top-1/2 -translate-y-1/2 rounded-full bg-violet/25"
-                style={{ left: `${lowPct}%`, width: `${Math.max(0, highPct - lowPct)}%`, height: "16px" }}
-              />
-            )}
             <div
               className="anim-width-in h-full rounded-full bg-gradient-to-r from-violet-dark via-violet to-violet-light"
               style={{ width: `${markerPct}%`, animationDelay: "0.3s" }}
@@ -97,46 +80,22 @@ export default function ConcertLength() {
               </span>
             ))}
           </div>
-          {mae !== null && (
-            <div className="mt-6 font-mono text-xs text-white/30">
-              shaded band: typical range of {Math.max(0, (predicted ?? 0) - mae)}–{(predicted ?? 0) + mae} songs
-            </div>
-          )}
         </Card>
 
-        {/* Stat row, split down the middle by a second photograph. */}
-        <Card className="anim-fade-in-up col-span-3 flex flex-col justify-center lg:col-span-1" style={{ animationDelay: "0.15s" }}>
+        {/* Stat row: the point estimate beside a second photograph. */}
+        <Card className="anim-fade-in-up col-span-6 flex flex-col justify-center md:col-span-2" style={{ animationDelay: "0.15s" }}>
           <div className="text-[13px] font-medium text-white/55">Predicted mean</div>
           <div className="mt-2 font-display text-4xl font-bold">{predicted ?? "N/A"}</div>
           <div className="font-mono text-[10px] text-white/30">songs, next show</div>
-        </Card>
-        <Card className="anim-fade-in-up col-span-3 flex flex-col justify-center lg:col-span-1" style={{ animationDelay: "0.2s" }}>
-          <div className="text-[13px] font-medium text-white/55">Mean absolute error</div>
-          <div className="mt-2 font-display text-4xl font-bold">{mae ?? "N/A"}</div>
-          <div className="font-mono text-[10px] text-white/30">songs, model-wide</div>
         </Card>
 
         <PhotoPanel
           photo={PHOTOS.singerConfetti}
           accent="violet"
-          className="col-span-6 h-[14rem] lg:col-span-2 lg:h-[15rem]"
+          className="col-span-6 h-[14rem] md:col-span-4 lg:h-[15rem]"
           style={{ animationDelay: "0.22s" }}
         />
 
-        <Card className="anim-fade-in-up col-span-3 flex flex-col justify-center lg:col-span-1" style={{ animationDelay: "0.25s" }}>
-          <div className="text-[13px] font-medium text-white/55">Typical range</div>
-          <div className="mt-2 font-display text-4xl font-bold">
-            {predicted !== null && mae !== null ? `${Math.max(0, predicted - mae)}–${predicted + mae}` : "N/A"}
-          </div>
-          <div className="font-mono text-[10px] text-white/30">songs, within one MAE</div>
-        </Card>
-        <Card className="anim-fade-in-up col-span-3 flex flex-col justify-center lg:col-span-1" style={{ animationDelay: "0.3s" }}>
-          <div className="text-[13px] font-medium text-white/55">Setlist accuracy</div>
-          <div className="mt-2 font-display text-4xl font-bold">
-            {overview?.setlist_accuracy != null ? `${Math.round(overview.setlist_accuracy * 100)}%` : "N/A"}
-          </div>
-          <div className="font-mono text-[10px] text-white/30">over {overview?.concerts_logged ?? "?"} concerts</div>
-        </Card>
 
         {/* Runtime in minutes. Shown next to the measured history rather than alone, because
             the minutes figure is a product of two real numbers, not a trained prediction. */}
